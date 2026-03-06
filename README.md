@@ -1,3 +1,4 @@
+
 # IoT Weather Monitoring Platform
 
 Nền tảng giám sát thời tiết thời gian thực cho các thành phố Việt Nam, được xây dựng với công nghệ **Node.js**, **React**, **MongoDB**, **Socket.io** và **MQTT**.
@@ -479,4 +480,5 @@ Nếu bạn thấy hữu ích, vui lòng sao ⭐ dự án này!
 **Tác giả**: IoT Development Team
 node -v
 npm -v
+
 
