@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: iot_mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - iot_network
+    restart: always
+
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: iot_mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    networks:
+      - iot_network
+    restart: always
+
+  backend:
+    build:
+      context: ./backend
+    container_name: iot_backend
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/iot_db
+      - MQTT_URL=mqtt://mosquitto:1883
+    depends_on:
+      - mongodb
+      - mosquitto
+    networks:
+      - iot_network
+    restart: always
+
+  device-simulator:
+    build:
+      context: ./device-simulator
+    container_name: iot_device_simulator
+    environment:
+      - MQTT_URL=mqtt://mosquitto:1883
+    depends_on:
+      - mosquitto
+    networks:
+      - iot_network
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - REACT_APP_SOCKET_SERVER=http://localhost:3000
+    container_name: iot_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - iot_network
+    restart: always
+
+networks:
+  iot_network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  mosquitto_data:
+  mosquitto_log:

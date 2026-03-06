@@ -1,0 +1,231 @@
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+/* Global Styles */
+.font-manrope {
+  font-family: 'Manrope', sans-serif;
+}
+
+/* Weather Background */
+.weather-background {
+  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 50%, #7dd3fc 100%);
+  min-height: 100vh;
+  position: relative;
+}
+
+.weather-background::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 20% 50%, rgba(56, 189, 248, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(14, 165, 233, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, rgba(125, 211, 252, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* Weather Cards */
+.weather-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.weather-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transition: left 0.5s ease;
+}
+
+.weather-card:hover::before {
+  left: 100%;
+}
+
+.weather-card:hover {
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+/* Weather Icon Container */
+.weather-icon-container {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+.weather-icon-bg {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: transform 0.3s ease;
+}
+
+.weather-card:hover .weather-icon-bg {
+  transform: scale(1.1) rotate(5deg);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.skeleton-pulse {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Value Display Animations */
+.weather-card [class*="text-7xl"] {
+  font-variant-numeric: tabular-nums;
+  transition: color 0.3s ease;
+}
+
+/* Responsive Typography */
+@media (max-width: 640px) {
+  .weather-card [class*="text-7xl"] {
+    font-size: 4rem;
+  }
+  
+  .weather-card [class*="text-3xl"] {
+    font-size: 1.875rem;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(14, 165, 233, 0.5);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(14, 165, 233, 0.7);
+}
+
+/* Connection Status Badge Animation */
+@keyframes connectedPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0);
+  }
+}
+
+[data-testid="connection-status-badge"] {
+  transition: all 0.3s ease;
+}
+
+/* Backdrop Blur Support */
+@supports not (backdrop-filter: blur(12px)) {
+  .weather-card {
+    background: rgba(255, 255, 255, 0.95);
+  }
+}
+
+/* Loading State */
+.loading-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Dashboard Chart Styles */
+.dashboard {
+  background: transparent;
+  padding: 0;
+}
+
+.dashboard .recharts-wrapper {
+  filter: drop-shadow(0 10px 30px rgba(14, 165, 233, 0.15));
+}
+
+.chart-wrapper {
+  width: 100%;
+  min-height: 380px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.85) 100%);
+  border-radius: 16px;
+  padding: 24px;
+  border: 2px solid rgba(14, 165, 233, 0.2);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.chart-wrapper .recharts-default-tooltip {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(14, 165, 233, 0.3) !important;
+  border-radius: 8px !important;
+}
+
+.recharts-line-line {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* Responsive Chart */
+@media (max-width: 768px) {
+  .chart-wrapper {
+    min-height: 300px;
+    padding: 16px;
+  }
+}
