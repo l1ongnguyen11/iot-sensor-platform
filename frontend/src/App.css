@@ -229,3 +229,50 @@
     padding: 16px;
   }
 }
+
+/* Alert styles */
+.alert {
+  margin-top: 10px;
+  color: red;
+  font-weight: bold;
+}
+
+/* Stats row under the chart */
+.stats-row {
+  display: flex;
+  justify-content: flex-start;
+  gap: 1rem;
+  margin-top: 12px;
+}
+
+.stat-box {
+  background: rgba(255,255,255,0.9);
+  border: 1px solid rgba(0,0,0,0.06);
+  padding: 12px 16px;
+  border-radius: 8px;
+  min-width: 120px;
+  text-align: center;
+  box-shadow: 0 6px 20px rgba(14,165,233,0.06);
+}
+
+.stat-title {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: #111827;
+}
+
+/* Global alert banner */
+.alert-banner {
+  background: linear-gradient(90deg, rgba(254, 226, 226, 0.95), rgba(255, 239, 213, 0.95));
+  border: 1px solid rgba(220, 38, 38, 0.12);
+  color: #991b1b;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+}

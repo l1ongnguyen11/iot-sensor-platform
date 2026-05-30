@@ -50,6 +50,30 @@ OpenWeather API
 
 ---
 
+## Project Overview
+
+This project simulates and displays realtime weather sensor data (temperature and humidity) for multiple cities. Data flows from a device simulator -> MQTT broker -> backend -> MongoDB -> Socket.io -> React dashboard.
+
+## Architecture
+
+- Device Simulator: publishes sensor data to MQTT
+- MQTT Broker: message transport (mosquitto)
+- Backend: subscribes to MQTT, saves to MongoDB, broadcasts via Socket.io
+- Frontend: React dashboard subscribes to Socket.io and renders charts and alerts
+
+## Screenshots
+
+See `assets/dashboard.png` for a screenshot of the dashboard UI.
+
+## API Endpoints
+
+The backend exposes simple HTTP endpoints (examples):
+
+- `GET /api/health` — health check
+- `GET /api/devices` — list devices
+- `GET /api/data?deviceId=...&limit=50` — recent sensor data
+
+
 ## 🌍 Supported Cities
 
 * Hanoi

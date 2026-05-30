@@ -10,6 +10,8 @@ function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [connectionError, setConnectionError] = useState(null);
+  const [sensorData, setSensorData] = useState(null);
+  const [isOnline, setIsOnline] = useState(false);
   const [city, setCity] = useState("Hanoi");
   const [currentCityDisplay, setCurrentCityDisplay] = useState("Ha Noi");
 
@@ -41,7 +43,14 @@ function App() {
         if (data.humidity !== undefined) {
           setHumidity(data.humidity);
         }
-        setLastUpdate(new Date());
+
+        const incomingData = {
+          ...data,
+          timestamp: new Date(),
+        };
+
+        setSensorData(incomingData);
+        setLastUpdate(incomingData.timestamp);
       });
 
       socketRef.current.on("disconnect", () => {
@@ -62,7 +71,7 @@ function App() {
       console.error("Error creating Socket.io connection:", error);
       setConnectionError("Không thể kết nối đến server");
     }
-  }, [city]);
+  }, [city, SOCKET_SERVER]);
 
   useEffect(() => {
     connectSocket();
@@ -77,12 +86,26 @@ function App() {
     };
   }, [connectSocket]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!sensorData?.timestamp) return;
+
+      const diff = new Date() - new Date(sensorData.timestamp);
+      setIsOnline(diff < 15000);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [sensorData]);
+
   const handleCityChange = (newCity) => {
     const selected = cityOptions.find(c => c.key === newCity);
     setCity(newCity);
     setCurrentCityDisplay(selected.display);
     setTemperature(null);
     setHumidity(null);
+    setSensorData(null);
+    setLastUpdate(null);
+    setIsOnline(false);
   };
 
   const formatTime = (date) => {
@@ -141,13 +164,13 @@ function App() {
               </select>
 
               {/* Connection Status */}
-              {isConnected ? (
+              {isOnline ? (
                 <div 
                   data-testid="connection-status-badge"
                   className="flex items-center gap-2 bg-green-500/20 text-green-700 border border-green-300 px-3 py-1.5 rounded-lg"
                 >
                   <Wifi className="w-4 h-4" />
-                  <span>Đã kết nối</span>
+                  <span>🟢 Online</span>
                 </div>
               ) : (
                 <div 
@@ -155,7 +178,7 @@ function App() {
                   className="flex items-center gap-2 bg-red-500/20 text-red-700 border border-red-300 px-3 py-1.5 rounded-lg"
                 >
                   <WifiOff className="w-4 h-4" />
-                  <span>Mất kết nối</span>
+                  <span>🔴 Offline</span>
                 </div>
               )}
 
@@ -163,6 +186,20 @@ function App() {
           </div>
         </div>
       </header>
+
+      {/* Global Alert Banner */}
+      {(temperature > 35 || humidity > 90) && (
+        <div className="container mx-auto px-4 py-3">
+          <div className="alert-banner flex items-center justify-center gap-4">
+            {temperature > 35 && (
+              <div className="font-medium">⚠️ High Temperature Alert</div>
+            )}
+            {humidity > 90 && (
+              <div className="font-medium">⚠️ High Humidity Alert</div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-12">
@@ -224,6 +261,9 @@ function App() {
                     </span>
                   </div>
                 </div>
+                {temperature > 35 && (
+                  <div className="alert">⚠️ High Temperature Alert</div>
+                )}
               </div>
             </div>
 
@@ -271,6 +311,9 @@ function App() {
                     </span>
                   </div>
                 </div>
+                {humidity > 90 && (
+                  <div className="alert">⚠️ High Humidity Alert</div>
+                )}
               </div>
             </div>
           </div>

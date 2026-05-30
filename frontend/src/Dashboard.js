@@ -46,6 +46,29 @@ function Dashboard() {
           </LineChart>
         </ResponsiveContainer>
       </div>
+      {/* Statistics Row */}
+      <div className="stats-row mt-4 flex gap-4">
+        <div className="stat-box">
+          <div className="stat-title">Max Temp</div>
+          <div className="stat-value">
+            {data.length > 0 ? `${Math.max(...data.map(d => d.temperature)).toFixed(0)}°C` : 'N/A'}
+          </div>
+        </div>
+
+        <div className="stat-box">
+          <div className="stat-title">Min Temp</div>
+          <div className="stat-value">
+            {data.length > 0 ? `${Math.min(...data.map(d => d.temperature)).toFixed(0)}°C` : 'N/A'}
+          </div>
+        </div>
+
+        <div className="stat-box">
+          <div className="stat-title">Avg Humidity</div>
+          <div className="stat-value">
+            {data.length > 0 ? `${(data.reduce((s, d) => s + (d.humidity || 0), 0) / data.length).toFixed(0)}%` : 'N/A'}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
