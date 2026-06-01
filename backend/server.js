@@ -21,9 +21,9 @@ const io = new Server(server, {
 
 /* ================= MongoDB ================= */
 
-mongoose.connect(process.env.MONGO_URI || "mongodb://127.0.0.1:27017/iot_db", {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
+mongoose.connect(process.env.MONGO_URI, {
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
 });
 
 mongoose.connection.once("open", () => {
@@ -31,8 +31,7 @@ mongoose.connection.once("open", () => {
 });
 
 mongoose.connection.on("error", (err) => {
-  console.log("⚠️ MongoDB error (non-blocking):", err.message);
-  // Continue running even if MongoDB is not available initially
+  console.log("⚠️ MongoDB error:", err.message);
 });
 
 /* ================= MQTT ================= */
@@ -183,6 +182,6 @@ io.on("connection", (socket) => {
 /* ================= START SERVER ================= */
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
