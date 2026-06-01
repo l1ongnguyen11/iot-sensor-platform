@@ -14,6 +14,7 @@ function App() {
   const [isOnline, setIsOnline] = useState(false);
   const [city, setCity] = useState("Hanoi");
   const [currentCityDisplay, setCurrentCityDisplay] = useState("Ha Noi");
+  const [devices, setDevices] = useState([]);
 
   const socketRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
@@ -85,6 +86,14 @@ function App() {
       }
     };
   }, [connectSocket]);
+
+  // Fetch registered devices from backend
+  useEffect(() => {
+    fetch("http://localhost:3000/api/devices")
+      .then(res => res.json())
+      .then(data => setDevices(data))
+      .catch(err => console.warn("Failed to load devices:", err));
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -322,6 +331,45 @@ function App() {
           <div className="mt-8 mb-8">
             <div className="backdrop-blur-md bg-gradient-to-br from-white/80 to-white/70 border border-white/80 rounded-2xl p-8 shadow-2xl">
               <Dashboard />
+            </div>
+          </div>
+
+          {/* Device List Section */}
+          <div className="mt-6 mb-8 backdrop-blur-md bg-white/60 p-6 rounded-xl border border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Device List</h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-2 text-sm text-gray-600">Device</th>
+                    <th className="px-4 py-2 text-sm text-gray-600">City</th>
+                    <th className="px-4 py-2 text-sm text-gray-600">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {devices.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="px-4 py-3 text-sm text-gray-500">No devices registered</td>
+                    </tr>
+                  )}
+                  {devices.map((device) => {
+                    const isOffline = device.online === false;
+                    return (
+                      <tr key={device._id || device.deviceId} className="border-t">
+                        <td className="px-4 py-3 text-sm text-gray-800">{device.deviceId}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{device.cityDisplay || device.cityKey || 'Unknown'}</td>
+                        <td className="px-4 py-3 text-sm">
+                          {isOffline ? (
+                            <span className="text-red-600">🔴 Offline</span>
+                          ) : (
+                            <span className="text-green-600">🟢 Online</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
 

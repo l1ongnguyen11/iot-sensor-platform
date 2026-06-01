@@ -31,7 +31,8 @@ mongoose.connection.once("open", () => {
 });
 
 mongoose.connection.on("error", (err) => {
-  console.log("❌ MongoDB error:", err);
+  console.log("⚠️ MongoDB error (non-blocking):", err.message);
+  // Continue running even if MongoDB is not available initially
 });
 
 /* ================= MQTT ================= */
@@ -63,36 +64,43 @@ client.on("message", async (topic, message) => {
 
     const mapping = cityMap[data.city] || { key: data.city, display: data.city };
 
-    // 👉 lưu MongoDB (normalized)
-    const sensorData = new SensorData({
-      deviceId: data.deviceId,
-      cityKey: mapping.key,
-      cityDisplay: mapping.display,
-      temperature: data.temperature,
-      humidity: data.humidity,
-      timestamp: data.timestamp || new Date()
-    });
-
-    await sensorData.save();
-
-    // Prepare normalized payload for realtime
+    // Prepare normalized payload for realtime (always emit, even without DB)
     const emitPayload = {
       deviceId: data.deviceId,
       cityKey: mapping.key,
       cityDisplay: mapping.display,
       temperature: data.temperature,
       humidity: data.humidity,
-      timestamp: sensorData.timestamp
+      timestamp: data.timestamp || new Date()
     };
 
-    // Emit events
+    // 👉 Try to save to MongoDB (skip if DB offline)
+    try {
+      const sensorData = new SensorData({
+        deviceId: data.deviceId,
+        cityKey: mapping.key,
+        cityDisplay: mapping.display,
+        temperature: data.temperature,
+        humidity: data.humidity,
+        timestamp: emitPayload.timestamp
+      });
+
+      await Promise.race([
+        sensorData.save(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Save timeout")), 5000))
+      ]);
+      console.log("📦 Data saved to DB:", emitPayload);
+    } catch (dbError) {
+      console.warn("⚠️ DB save skipped (MongoDB offline):", dbError.message);
+    }
+
+    // Emit events (always works, even without DB)
     io.emit(`sensor-${mapping.key}`, emitPayload);
     io.emit("sensor-data", emitPayload);
-
-    console.log("📦 Data saved:", emitPayload);
+    console.log("📡 Data broadcast via Socket.io");
 
   } catch (error) {
-    console.error("❌ MQTT message error:", error);
+    console.error("❌ MQTT parse error:", error.message);
   }
 });
 
@@ -147,8 +155,23 @@ app.post("/api/devices", async (req, res) => {
 });
 
 app.get("/api/devices", async (req, res) => {
-  const list = await Device.find().sort({ registeredAt: -1 });
-  res.json(list);
+  try {
+    const list = await Device.find().sort({ registeredAt: -1 });
+    const enhanced = await Promise.all(list.map(async (device) => {
+      const latestSensor = await SensorData.findOne({ deviceId: device.deviceId }).sort({ timestamp: -1 });
+      const lastSeen = latestSensor?.timestamp || null;
+      const online = lastSeen ? (new Date() - new Date(lastSeen) < 15000) : false;
+      return {
+        ...device.toObject(),
+        lastSeen,
+        online
+      };
+    }));
+
+    res.json(enhanced);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 /* ================= SOCKET ================= */
