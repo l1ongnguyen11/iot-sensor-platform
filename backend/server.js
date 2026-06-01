@@ -103,6 +103,22 @@ client.on("message", async (topic, message) => {
   }
 });
 
+/* ================= ROOT ROUTE (FIX Cannot GET /) ================= */
+
+app.get('/', (req, res) => {
+  res.json({
+    message: 'IoT Sensor Platform API is running!',
+    status: 'OK',
+    endpoints: {
+      root: '/',
+      sensors: '/api/sensors',
+      devices: '/api/devices',
+      city_data: '/api/sensor/city/:city',
+      socket: 'WebSocket connection available'
+    }
+  });
+});
+
 /* ================= REST API ================= */
 
 // 👉 Lấy dữ liệu mới nhất theo city
@@ -131,8 +147,12 @@ app.get("/api/sensor/city/:city", async (req, res) => {
 
 // 👉 Lấy toàn bộ dữ liệu
 app.get("/api/sensors", async (req, res) => {
-  const data = await SensorData.find().sort({ timestamp: -1 });
-  res.json(data);
+  try {
+    const data = await SensorData.find().sort({ timestamp: -1 });
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 // 👉 Device registration
