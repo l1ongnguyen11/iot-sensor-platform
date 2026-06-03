@@ -7,7 +7,6 @@ import Dashboard from "./Dashboard";
 function App() {
   const [temperature, setTemperature] = useState(null);
   const [humidity, setHumidity] = useState(null);
-  const [isConnected, setIsConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [connectionError, setConnectionError] = useState(null);
   const [sensorData, setSensorData] = useState(null);
@@ -15,7 +14,6 @@ function App() {
   const [city, setCity] = useState("Hanoi");
   const [currentCityDisplay, setCurrentCityDisplay] = useState("Ha Noi");
   const [devices, setDevices] = useState([]);
-
   const socketRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
 
@@ -29,16 +27,15 @@ const SOCKET_SERVER =
 
 const API_URL =
   process.env.REACT_APP_API_URL || "http://localhost:3000";
-  
+
   const connectSocket = useCallback(() => {
     try {
       socketRef.current = io(SOCKET_SERVER);
 
       socketRef.current.on("connect", () => {
-        console.log("Socket.io connected");
-        setIsConnected(true);
-        setConnectionError(null);
-      });
+  console.log("Socket.io connected");
+  setConnectionError(null);
+});
 
       socketRef.current.on(`sensor-${city}`, (data) => {
         if (data.temperature !== undefined) {
@@ -58,14 +55,13 @@ const API_URL =
       });
 
       socketRef.current.on("disconnect", () => {
-        console.log("Socket.io disconnected");
-        setIsConnected(false);
-        
-        reconnectTimeoutRef.current = setTimeout(() => {
-          console.log("Attempting to reconnect...");
-          connectSocket();
-        }, 5000);
-      });
+  console.log("Socket.io disconnected");
+
+  reconnectTimeoutRef.current = setTimeout(() => {
+    console.log("Attempting to reconnect...");
+    connectSocket();
+  }, 5000);
+});
 
       socketRef.current.on("connect_error", (error) => {
         console.error("Socket.io error:", error);
@@ -96,7 +92,7 @@ const API_URL =
       .then(res => res.json())
       .then(data => setDevices(data))
       .catch(err => console.warn("Failed to load devices:", err));
-  }, []);
+  }, [API_URL ]);
 
   useEffect(() => {
     const interval = setInterval(() => {

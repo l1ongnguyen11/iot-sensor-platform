@@ -13,21 +13,21 @@ import "./App.css";
 
 function Dashboard() {
   const [data, setData] = useState([]);
-  const [latestByCity, setLatestByCity] = useState({});
 
   useEffect(() => {
-    const socket = io(process.env.REACT_APP_SOCKET_SERVER || "http://localhost:3000");
-    
-    socket.on("sensor-data", (newData) => {
-      setData((prev) => [...prev.slice(-50), newData]);
-      // Use cityKey from normalized backend payload
-      setLatestByCity((prev) => ({ ...prev, [newData.cityKey]: newData }));
-    });
+  const socket = io(
+    process.env.REACT_APP_SOCKET_SERVER || "http://localhost:3000"
+  );
 
-    return () => socket.off("sensor-data");
-  }, []);
+  socket.on("sensor-data", (newData) => {
+    setData((prev) => [...prev.slice(-50), newData]);
+  });
 
-  const cities = ["Hanoi", "Ho Chi Minh City", "Da Nang"];
+  return () => {
+    socket.off("sensor-data");
+    socket.disconnect();
+  };
+}, []);
 
   return (
     <div className="dashboard">
