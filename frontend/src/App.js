@@ -24,9 +24,12 @@ function App() {
     { key: "Ho Chi Minh City", display: "Ho Chi Minh" },
     { key: "Da Nang", display: "Da Nang" }
   ];
+const SOCKET_SERVER =
+  process.env.REACT_APP_SOCKET_SERVER || "http://localhost:3000";
 
-  const SOCKET_SERVER = process.env.REACT_APP_SOCKET_SERVER || "http://localhost:3000";
-
+const API_URL =
+  process.env.REACT_APP_API_URL || "http://localhost:3000";
+  
   const connectSocket = useCallback(() => {
     try {
       socketRef.current = io(SOCKET_SERVER);
@@ -89,7 +92,7 @@ function App() {
 
   // Fetch registered devices from backend
   useEffect(() => {
-    fetch("http://localhost:3000/api/devices")
+    fetch(`${API_URL}/api/devices`)
       .then(res => res.json())
       .then(data => setDevices(data))
       .catch(err => console.warn("Failed to load devices:", err));
