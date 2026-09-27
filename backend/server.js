@@ -36,7 +36,9 @@ mongoose.connection.on("error", (err) => {
 
 /* ================= MQTT ================= */
 
-const client = mqtt.connect(process.env.MQTT_URL || "mqtt://localhost:1883");
+const client = mqtt.connect(
+  process.env.MQTT_URL || "mqtt://localhost:1883"
+);
 
 client.on("connect", () => {
   console.log("✅ Connected to MQTT broker");
@@ -45,25 +47,59 @@ client.on("connect", () => {
 
 client.on("message", async (topic, message) => {
   try {
-
     const data = JSON.parse(message.toString());
 
-    // 👉 kiểm tra nếu thiếu city thì bỏ qua
+    /* ================= UPDATE DEVICE STATUS ================= */
+
+    if (data.deviceId) {
+      await Device.findOneAndUpdate(
+        { deviceId: data.deviceId },
+        {
+          $set: {
+            status: "online",
+            lastSeen: new Date()
+          }
+        },
+        { new: true }
+      );
+
+      console.log(`🟢 Device online: ${data.deviceId}`);
+    }
+
+    /* ================= CHECK CITY ================= */
+
     if (!data.city) {
       console.log("⚠️ Data missing city:", data);
       return;
     }
 
-    // Normalize city keys & display names
+    /* ================= CITY MAP ================= */
+
     const cityMap = {
-      "Hanoi": { key: "Hanoi", display: "Ha Noi" },
-      "Ho Chi Minh City": { key: "Ho Chi Minh City", display: "Ho Chi Minh" },
-      "Da Nang": { key: "Da Nang", display: "Da Nang" }
+      "Hanoi": {
+        key: "Hanoi",
+        display: "Ha Noi"
+      },
+
+      "Ho Chi Minh City": {
+        key: "Ho Chi Minh City",
+        display: "Ho Chi Minh"
+      },
+
+      "Da Nang": {
+        key: "Da Nang",
+        display: "Da Nang"
+      }
     };
 
-    const mapping = cityMap[data.city] || { key: data.city, display: data.city };
+    const mapping =
+      cityMap[data.city] || {
+        key: data.city,
+        display: data.city
+      };
 
-    // Prepare normalized payload for realtime (always emit, even without DB)
+    /* ================= REALTIME PAYLOAD ================= */
+
     const emitPayload = {
       deviceId: data.deviceId,
       cityKey: mapping.key,
@@ -73,7 +109,8 @@ client.on("message", async (topic, message) => {
       timestamp: data.timestamp || new Date()
     };
 
-    // 👉 Try to save to MongoDB (skip if DB offline)
+    /* ================= SAVE TO MONGODB ================= */
+
     try {
       const sensorData = new SensorData({
         deviceId: data.deviceId,
@@ -86,122 +123,287 @@ client.on("message", async (topic, message) => {
 
       await Promise.race([
         sensorData.save(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("Save timeout")), 5000))
+
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("Save timeout")),
+            5000
+          )
+        )
       ]);
+
       console.log("📦 Data saved to DB:", emitPayload);
+
     } catch (dbError) {
-      console.warn("⚠️ DB save skipped (MongoDB offline):", dbError.message);
+      console.warn(
+        "⚠️ DB save skipped (MongoDB offline):",
+        dbError.message
+      );
     }
 
-    // Emit events (always works, even without DB)
-    io.emit(`sensor-${mapping.key}`, emitPayload);
-    io.emit("sensor-data", emitPayload);
+    /* ================= SOCKET.IO ================= */
+
+    io.emit(
+      `sensor-${mapping.key}`,
+      emitPayload
+    );
+
+    io.emit(
+      "sensor-data",
+      emitPayload
+    );
+
     console.log("📡 Data broadcast via Socket.io");
 
   } catch (error) {
-    console.error("❌ MQTT parse error:", error.message);
+    console.error(
+      "❌ MQTT parse error:",
+      error.message
+    );
   }
 });
 
-/* ================= ROOT ROUTE (FIX Cannot GET /) ================= */
+/* ================= ROOT ROUTE ================= */
 
-app.get('/', (req, res) => {
+app.get("/", (req, res) => {
   res.json({
-    message: 'IoT Sensor Platform API is running!',
-    status: 'OK',
+    message: "IoT Sensor Platform API is running!",
+    status: "OK",
+
     endpoints: {
-      root: '/',
-      sensors: '/api/sensors',
-      devices: '/api/devices',
-      city_data: '/api/sensor/city/:city',
-      socket: 'WebSocket connection available'
+      root: "/",
+      sensors: "/api/sensors",
+      devices: "/api/devices",
+      city_data: "/api/sensor/city/:city",
+      socket: "WebSocket connection available"
     }
   });
 });
 
 /* ================= REST API ================= */
 
-// 👉 Lấy dữ liệu mới nhất theo city
-app.get("/api/sensor/city/:city", async (req, res) => {
-  try {
+/* Get latest sensor data by city */
 
-    // try to find by cityKey first, then by cityDisplay
-    const cityParam = req.params.city;
-    let latestData = await SensorData.findOne({ cityKey: cityParam }).sort({ timestamp: -1 });
-    if (!latestData) {
-      latestData = await SensorData.findOne({ cityDisplay: cityParam }).sort({ timestamp: -1 });
-    }
+app.get(
+  "/api/sensor/city/:city",
+  async (req, res) => {
 
-    if (!latestData) {
-      return res.status(404).json({
-        message: "No data found"
+    try {
+
+      const cityParam = req.params.city;
+
+      let latestData =
+        await SensorData
+          .findOne({
+            cityKey: cityParam
+          })
+          .sort({
+            timestamp: -1
+          });
+
+      if (!latestData) {
+        latestData =
+          await SensorData
+            .findOne({
+              cityDisplay: cityParam
+            })
+            .sort({
+              timestamp: -1
+            });
+      }
+
+      if (!latestData) {
+        return res.status(404).json({
+          message: "No data found"
+        });
+      }
+
+      res.json(latestData);
+
+    } catch (error) {
+
+      res.status(500).json({
+        message: error.message
       });
+
     }
-
-    res.json(latestData);
-
-  } catch (error) {
-    res.status(500).json({ message: error.message });
   }
-});
+);
 
-// 👉 Lấy toàn bộ dữ liệu
-app.get("/api/sensors", async (req, res) => {
-  try {
-    const data = await SensorData.find().sort({ timestamp: -1 });
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+/* Get all sensor data */
 
-// 👉 Device registration
-app.post("/api/devices", async (req, res) => {
-  try {
-    const { deviceId, name, cityKey, cityDisplay } = req.body;
-    if (!deviceId) return res.status(400).json({ message: "deviceId required" });
+app.get(
+  "/api/sensors",
+  async (req, res) => {
 
-    let device = await Device.findOne({ deviceId });
-    if (!device) {
-      device = new Device({ deviceId, name, cityKey, cityDisplay });
-      await device.save();
+    try {
+
+      const data =
+        await SensorData
+          .find()
+          .sort({
+            timestamp: -1
+          });
+
+      res.json(data);
+
+    } catch (error) {
+
+      res.status(500).json({
+        message: error.message
+      });
+
     }
-
-    res.json(device);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
   }
-});
+);
 
-app.get("/api/devices", async (req, res) => {
-  try {
-    const list = await Device.find().sort({ registeredAt: -1 });
-    const enhanced = await Promise.all(list.map(async (device) => {
-      const latestSensor = await SensorData.findOne({ deviceId: device.deviceId }).sort({ timestamp: -1 });
-      const lastSeen = latestSensor?.timestamp || null;
-      const online = lastSeen ? (new Date() - new Date(lastSeen) < 15000) : false;
-      return {
-        ...device.toObject(),
-        lastSeen,
-        online
-      };
-    }));
+/* ================= DEVICE REGISTRATION ================= */
 
-    res.json(enhanced);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+app.post(
+  "/api/devices",
+  async (req, res) => {
+
+    try {
+
+      const {
+        deviceId,
+        name,
+        cityKey,
+        cityDisplay
+      } = req.body;
+
+      if (!deviceId) {
+        return res.status(400).json({
+          message: "deviceId required"
+        });
+      }
+
+      let device =
+        await Device.findOne({
+          deviceId
+        });
+
+      if (!device) {
+
+        device = new Device({
+          deviceId,
+          name,
+          cityKey,
+          cityDisplay
+        });
+
+        await device.save();
+      }
+
+      res.json(device);
+
+    } catch (err) {
+
+      res.status(500).json({
+        message: err.message
+      });
+
+    }
   }
-});
+);
+
+/* ================= GET DEVICES ================= */
+
+app.get(
+  "/api/devices",
+  async (req, res) => {
+
+    try {
+
+      const list =
+        await Device
+          .find()
+          .sort({
+            registeredAt: -1
+          });
+
+      const enhanced =
+        await Promise.all(
+
+          list.map(async (device) => {
+
+            const latestSensor =
+              await SensorData
+                .findOne({
+                  deviceId: device.deviceId
+                })
+                .sort({
+                  timestamp: -1
+                });
+
+            const sensorLastSeen =
+              latestSensor?.timestamp || null;
+
+            /*
+             * Device is considered online
+             * if it sent data within 15 seconds.
+             */
+
+            const online =
+              sensorLastSeen
+                ? (
+                    new Date() -
+                    new Date(sensorLastSeen)
+                  ) < 15000
+                : false;
+
+            return {
+              ...device.toObject(),
+
+              lastSeen:
+                device.lastSeen ||
+                sensorLastSeen,
+
+              online
+            };
+
+          })
+        );
+
+      res.json(enhanced);
+
+    } catch (err) {
+
+      res.status(500).json({
+        message: err.message
+      });
+
+    }
+  }
+);
 
 /* ================= SOCKET ================= */
 
-io.on("connection", (socket) => {
-  console.log("⚡ Client connected:", socket.id);
-});
+io.on(
+  "connection",
+  (socket) => {
+
+    console.log(
+      "⚡ Client connected:",
+      socket.id
+    );
+
+  }
+);
 
 /* ================= START SERVER ================= */
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+const PORT =
+  process.env.PORT || 3000;
+
+server.listen(
+  PORT,
+  "0.0.0.0",
+  () => {
+
+    console.log(
+      `🚀 Server running on port ${PORT}`
+    );
+
+  }
+);
