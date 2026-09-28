@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { API_URL } from "./config";
 import {
   LineChart,
   Line,
@@ -19,8 +20,6 @@ function SensorHistory() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3000";
-
   // Fetch available devices for selector
   useEffect(() => {
     fetch(`${API_URL}/api/devices`)
@@ -32,7 +31,7 @@ function SensorHistory() {
         }
       })
       .catch((err) => console.warn("Failed to fetch devices for history component:", err));
-  }, [API_URL]);
+  }, []);
 
   const getLimitForHours = (h) => {
     if (h <= 1) return 200;
@@ -77,7 +76,7 @@ function SensorHistory() {
     } finally {
       setLoading(false);
     }
-  }, [API_URL, selectedDevice, hours]);
+  }, [selectedDevice, hours]);
 
   useEffect(() => {
     fetchHistoryAndStats();

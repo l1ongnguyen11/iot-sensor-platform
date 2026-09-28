@@ -5,30 +5,27 @@ import { Thermometer, Droplets, Wifi, WifiOff, Cloud } from "lucide-react";
 import Dashboard from "./Dashboard";
 import SensorHistory from "./SensorHistory";
 import AlertPanel from "./AlertPanel";
+import { API_URL, SOCKET_SERVER } from "./config";
+
+const cityOptions = [
+  { key: "hanoi", display: "Hà Nội" },
+  { key: "danang", display: "Đà Nẵng" },
+  { key: "hcm", display: "TP. Hồ Chí Minh" }
+];
 
 function App() {
+  const [city, setCity] = useState("hanoi");
+  const [currentCityDisplay, setCurrentCityDisplay] = useState("Hà Nội");
   const [temperature, setTemperature] = useState(null);
   const [humidity, setHumidity] = useState(null);
-  const [lastUpdate, setLastUpdate] = useState(null);
-  const [connectionError, setConnectionError] = useState(null);
   const [sensorData, setSensorData] = useState(null);
+  const [lastUpdate, setLastUpdate] = useState(null);
   const [isOnline, setIsOnline] = useState(false);
-  const [city, setCity] = useState("Hanoi");
-  const [currentCityDisplay, setCurrentCityDisplay] = useState("Ha Noi");
+  const [connectionError, setConnectionError] = useState(null);
   const [devices, setDevices] = useState([]);
+
   const socketRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
-
-  const cityOptions = [
-    { key: "Hanoi", display: "Ha Noi" },
-    { key: "Ho Chi Minh City", display: "Ho Chi Minh" },
-    { key: "Da Nang", display: "Da Nang" }
-  ];
-const SOCKET_SERVER =
-  process.env.REACT_APP_SOCKET_SERVER || "http://localhost:3000";
-
-const API_URL =
-  process.env.REACT_APP_API_URL || "http://localhost:3000";
 
   const connectSocket = useCallback(() => {
     try {
@@ -73,7 +70,7 @@ const API_URL =
       console.error("Error creating Socket.io connection:", error);
       setConnectionError("Không thể kết nối đến server");
     }
-  }, [city, SOCKET_SERVER]);
+  }, [city]);
 
   useEffect(() => {
     connectSocket();
@@ -97,7 +94,7 @@ const API_URL =
         }
       })
       .catch(err => console.warn("Failed to load devices:", err));
-  }, [API_URL]);
+  }, []);
 
   useEffect(() => {
     fetchDevices();

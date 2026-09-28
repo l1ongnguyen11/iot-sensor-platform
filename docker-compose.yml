@@ -67,6 +67,7 @@ services:
       context: ./frontend
       args:
         - REACT_APP_SOCKET_SERVER=http://localhost:3000
+        - REACT_APP_API_URL=http://localhost:3000
     container_name: iot_frontend
     ports:
       - "80:80"

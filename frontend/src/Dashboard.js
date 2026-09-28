@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import io from "socket.io-client";
+import { SOCKET_SERVER } from "./config";
 import {
   LineChart,
   Line,
@@ -15,9 +16,7 @@ function Dashboard() {
   const [data, setData] = useState([]);
 
   useEffect(() => {
-  const socket = io(
-    process.env.REACT_APP_SOCKET_SERVER || "http://localhost:3000"
-  );
+    const socket = io(SOCKET_SERVER);
 
   socket.on("sensor-data", (newData) => {
     setData((prev) => [...prev.slice(-50), newData]);

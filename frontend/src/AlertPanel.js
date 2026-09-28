@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import io from "socket.io-client";
+import { API_URL, SOCKET_SERVER } from "./config";
 import {
   AlertTriangle,
   Bell,
@@ -35,9 +36,6 @@ function AlertPanel() {
   const [filterDevice, setFilterDevice] = useState("All");
   const [filterType, setFilterType] = useState("All");
 
-  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3000";
-  const SOCKET_SERVER = process.env.REACT_APP_SOCKET_SERVER || "http://localhost:3000";
-
   // Fetch devices for filter dropdown
   useEffect(() => {
     fetch(`${API_URL}/api/devices`)
@@ -46,7 +44,7 @@ function AlertPanel() {
         if (Array.isArray(data)) setDevices(data);
       })
       .catch((err) => console.warn("Failed to fetch devices for alert filter:", err));
-  }, [API_URL]);
+  }, []);
 
   // Fetch alerts and stats from API
   const fetchAlertsAndStats = useCallback(async () => {
@@ -78,7 +76,7 @@ function AlertPanel() {
     } finally {
       setLoading(false);
     }
-  }, [API_URL, filterStatus, filterSeverity, filterDevice, filterType]);
+  }, [filterStatus, filterSeverity, filterDevice, filterType]);
 
   useEffect(() => {
     fetchAlertsAndStats();
@@ -111,7 +109,7 @@ function AlertPanel() {
       socket.off("alert:updated");
       socket.disconnect();
     };
-  }, [SOCKET_SERVER, API_URL]);
+  }, []);
 
   // Action handlers
   const handleAcknowledge = async (id) => {
