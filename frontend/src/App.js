@@ -4,6 +4,7 @@ import io from "socket.io-client";
 import { Thermometer, Droplets, Wifi, WifiOff, Cloud } from "lucide-react";
 import Dashboard from "./Dashboard";
 import SensorHistory from "./SensorHistory";
+import AlertPanel from "./AlertPanel";
 
 function App() {
   const [temperature, setTemperature] = useState(null);
@@ -355,6 +356,11 @@ const API_URL =
             <div className="backdrop-blur-md bg-gradient-to-br from-white/80 to-white/70 border border-white/80 rounded-2xl p-8 shadow-2xl">
               <Dashboard />
             </div>
+          </div>
+
+          {/* Alert Monitoring System Section */}
+          <div className="mt-8 mb-8">
+            <AlertPanel />
           </div>
 
           {/* Sensor History & Analytics Section */}

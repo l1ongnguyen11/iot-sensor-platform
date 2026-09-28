@@ -32,6 +32,10 @@ services:
     environment:
       - MONGO_URI=mongodb://mongodb:27017/iot_db
       - MQTT_URL=mqtt://mosquitto:1883
+      - ALERT_HIGH_TEMPERATURE=${ALERT_HIGH_TEMPERATURE:-40}
+      - ALERT_LOW_TEMPERATURE=${ALERT_LOW_TEMPERATURE:-0}
+      - ALERT_HIGH_HUMIDITY=${ALERT_HIGH_HUMIDITY:-85}
+      - DEVICE_OFFLINE_TIMEOUT=${DEVICE_OFFLINE_TIMEOUT:-15000}
     depends_on:
       - mongodb
       - mosquitto

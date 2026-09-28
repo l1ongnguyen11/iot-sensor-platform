@@ -9,6 +9,7 @@ const { Server } = require("socket.io");
 
 const SensorData = require("./models/SensorData");
 const Device = require("./models/Device");
+const alertService = require("./services/alertService");
 
 const app = express();
 
@@ -60,6 +61,7 @@ async function checkOfflineDevices() {
       await device.save();
 
       console.log(`🔴 Device offline: ${device.deviceId}`);
+      await alertService.triggerDeviceOfflineAlert(device, io);
     }
   } catch (err) {
     console.error("❌ Offline detection error:", err.message);
@@ -257,6 +259,9 @@ client.on("message", async (topic, message) => {
       "📡 Data broadcast via Socket.io"
     );
 
+    /* ================= ALERT PROCESSING ================= */
+    await alertService.checkSensorAlerts(emitPayload, io);
+
   } catch (error) {
     console.error(
       "❌ MQTT message handling error:",
@@ -278,10 +283,89 @@ app.get("/", (req, res) => {
       sensors_history: "/api/sensors/history",
       sensors_stats: "/api/sensors/stats",
       devices: "/api/devices",
+      alerts: "/api/alerts",
+      alerts_active: "/api/alerts/active",
+      alerts_stats: "/api/alerts/stats",
       city_data: "/api/sensor/city/:city",
       socket: "WebSocket connection available"
     }
   });
+});
+
+/* ================= ALERT REST APIs ================= */
+
+// GET /api/alerts
+app.get("/api/alerts", async (req, res) => {
+  try {
+    const { status, severity, type } = req.query;
+    if (status && !["active", "acknowledged", "resolved"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status parameter" });
+    }
+    if (severity && !["warning", "critical"].includes(severity)) {
+      return res.status(400).json({ message: "Invalid severity parameter" });
+    }
+    if (type && !["HIGH_TEMPERATURE", "LOW_TEMPERATURE", "HIGH_HUMIDITY", "DEVICE_OFFLINE"].includes(type)) {
+      return res.status(400).json({ message: "Invalid type parameter" });
+    }
+    const alerts = await alertService.getAlerts(req.query);
+    res.json(alerts);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/alerts/active
+app.get("/api/alerts/active", async (req, res) => {
+  try {
+    const alerts = await alertService.getActiveAlerts(req.query);
+    res.json(alerts);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/alerts/stats
+app.get("/api/alerts/stats", async (req, res) => {
+  try {
+    const stats = await alertService.getAlertStats();
+    res.json(stats);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// POST /api/alerts/:id/acknowledge
+app.post("/api/alerts/:id/acknowledge", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid alert ID" });
+    }
+    const alert = await alertService.acknowledgeAlert(id, io);
+    if (!alert) {
+      return res.status(404).json({ message: "Alert not found" });
+    }
+    res.json(alertService.formatAlertPayload(alert));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// POST /api/alerts/:id/resolve
+app.post("/api/alerts/:id/resolve", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid alert ID" });
+    }
+    const alert = await alertService.resolveAlert(id, io);
+    if (!alert) {
+      return res.status(404).json({ message: "Alert not found" });
+    }
+    res.json(alertService.formatAlertPayload(alert));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 /* ================= SENSOR HISTORY ================= */
@@ -417,11 +501,7 @@ app.get(
 
       res.json({
         deviceId:
-          device
-            ? deviceId.trim()
-            : deviceId
-              ? deviceId.trim()
-              : null,
+          deviceId ? deviceId.trim() : null,
 
         city:
           city
