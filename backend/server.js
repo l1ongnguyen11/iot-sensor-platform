@@ -33,11 +33,11 @@ mongoose.connect(
 );
 
 mongoose.connection.once("open", () => {
-  console.log("✅ MongoDB connected");
+  console.log("[OK] MongoDB connected");
 });
 
 mongoose.connection.on("error", (err) => {
-  console.log("⚠️ MongoDB error:", err.message);
+  console.log("[ERROR] MongoDB error:", err.message);
 });
 
 /* ================= OFFLINE DETECTION ================= */
@@ -60,11 +60,11 @@ async function checkOfflineDevices() {
       device.status = "offline";
       await device.save();
 
-      console.log(`🔴 Device offline: ${device.deviceId}`);
+      console.log(`[WARN] Device offline: ${device.deviceId}`);
       await alertService.triggerDeviceOfflineAlert(device, io);
     }
   } catch (err) {
-    console.error("❌ Offline detection error:", err.message);
+    console.error("[ERROR] Offline detection error:", err.message);
   }
 }
 
@@ -79,7 +79,7 @@ const client = mqtt.connect(
 );
 
 client.on("connect", () => {
-  console.log("✅ Connected to MQTT broker");
+  console.log("[OK] Connected to MQTT broker");
 
   client.subscribe("iot/sensor/data");
 });
@@ -93,7 +93,7 @@ client.on("message", async (topic, message) => {
     try {
       data = JSON.parse(message.toString());
     } catch (parseErr) {
-      console.error("❌ MQTT parse error:", parseErr.message);
+      console.error("[ERROR] MQTT parse error:", parseErr.message);
       return;
     }
 
@@ -115,7 +115,7 @@ client.on("message", async (topic, message) => {
       isNaN(humidity)
     ) {
       console.warn(
-        "❌ Sensor data validation failed:",
+        "[WARN] Sensor data validation failed:",
         data
       );
 
@@ -134,7 +134,7 @@ client.on("message", async (topic, message) => {
       });
     } catch (dbErr) {
       console.warn(
-        "⚠️ Error querying device:",
+        "[WARN] Error querying device:",
         dbErr.message
       );
     }
@@ -143,7 +143,7 @@ client.on("message", async (topic, message) => {
 
     if (!device) {
       console.warn(
-        `⚠️ Unknown device: ${trimmedDeviceId}`
+        `[WARN] Unknown device: ${trimmedDeviceId}`
       );
     } else {
       try {
@@ -153,11 +153,11 @@ client.on("message", async (topic, message) => {
         await device.save();
 
         console.log(
-          `✅ Device online: ${device.deviceId}`
+          `[OK] Device online: ${device.deviceId}`
         );
       } catch (devUpdateErr) {
         console.warn(
-          "⚠️ Device status update error:",
+          "[WARN] Device status update error:",
           devUpdateErr.message
         );
       }
@@ -233,12 +233,12 @@ client.on("message", async (topic, message) => {
       ]);
 
       console.log(
-        "📦 Data saved to DB:",
+        "[DB] Data saved to DB:",
         emitPayload
       );
     } catch (dbError) {
       console.warn(
-        "⚠️ DB save skipped (MongoDB offline):",
+        "[WARN] DB save skipped (MongoDB offline):",
         dbError.message
       );
     }
@@ -256,7 +256,7 @@ client.on("message", async (topic, message) => {
     );
 
     console.log(
-      "📡 Data broadcast via Socket.io"
+      "[SOCKET] Data broadcast via Socket.io"
     );
 
     /* ================= ALERT PROCESSING ================= */
@@ -264,7 +264,7 @@ client.on("message", async (topic, message) => {
 
   } catch (error) {
     console.error(
-      "❌ MQTT message handling error:",
+      "[ERROR] MQTT message handling error:",
       error.message
     );
   }
@@ -520,7 +520,7 @@ app.get(
 
     } catch (error) {
       console.error(
-        "❌ Error fetching sensor history:",
+        "[ERROR] Error fetching sensor history:",
         error.message
       );
 
@@ -763,7 +763,7 @@ app.get(
 
     } catch (error) {
       console.error(
-        "❌ Error fetching sensor statistics:",
+        "[ERROR] Error fetching sensor statistics:",
         error.message
       );
 
@@ -1054,7 +1054,7 @@ io.on(
   "connection",
   (socket) => {
     console.log(
-      "⚡ Client connected:",
+      "[SOCKET] Client connected:",
       socket.id
     );
   }
@@ -1070,7 +1070,7 @@ server.listen(
   "0.0.0.0",
   () => {
     console.log(
-      `🚀 Server running on port ${PORT}`
+      `[SERVER] Server running on port ${PORT}`
     );
   }
 );
