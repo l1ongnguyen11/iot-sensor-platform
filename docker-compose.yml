@@ -47,6 +47,8 @@ services:
     container_name: iot_device_simulator
     environment:
       - MQTT_URL=mqtt://mosquitto:1883
+      - BACKEND_URL=http://backend:3000
+      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
     depends_on:
       - mosquitto
     networks:
