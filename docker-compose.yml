@@ -31,7 +31,9 @@ services:
       - "3000:3000"
     environment:
       - MONGO_URI=mongodb://mongodb:27017/iot_db
-      - MQTT_URL=mqtt://mosquitto:1883
+      - MQTT_URL=${MQTT_URL:-mqtt://mosquitto:1883}
+      - MQTT_USERNAME=${MQTT_USERNAME}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
       - ALERT_HIGH_TEMPERATURE=${ALERT_HIGH_TEMPERATURE:-40}
       - ALERT_LOW_TEMPERATURE=${ALERT_LOW_TEMPERATURE:-0}
       - ALERT_HIGH_HUMIDITY=${ALERT_HIGH_HUMIDITY:-85}
@@ -48,7 +50,9 @@ services:
       context: ./device-simulator
     container_name: iot_device_simulator
     environment:
-      - MQTT_URL=mqtt://mosquitto:1883
+      - MQTT_URL=${MQTT_URL:-mqtt://mosquitto:1883}
+      - MQTT_USERNAME=${MQTT_USERNAME}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
       - BACKEND_URL=http://backend:3000
       - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
     depends_on:

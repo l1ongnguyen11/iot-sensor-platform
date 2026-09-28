@@ -72,10 +72,15 @@ setInterval(checkOfflineDevices, 5000);
 
 /* ================= MQTT ================= */
 
+const mqttOptions = {};
+if (process.env.MQTT_USERNAME) mqttOptions.username = process.env.MQTT_USERNAME;
+if (process.env.MQTT_PASSWORD) mqttOptions.password = process.env.MQTT_PASSWORD;
+
 const client = mqtt.connect(
   process.env.MQTT_URL ||
   process.env.MQTT_BROKER ||
-  "mqtt://localhost:1883"
+  "mqtt://localhost:1883",
+  mqttOptions
 );
 
 client.on("connect", () => {

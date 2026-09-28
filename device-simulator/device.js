@@ -10,7 +10,11 @@ const BACKEND_URL =
 const OPENWEATHER_API_KEY =
   process.env.OPENWEATHER_API_KEY || "";
 
-const client = mqtt.connect(MQTT_URL);
+const mqttOptions = {};
+if (process.env.MQTT_USERNAME) mqttOptions.username = process.env.MQTT_USERNAME;
+if (process.env.MQTT_PASSWORD) mqttOptions.password = process.env.MQTT_PASSWORD;
+
+const client = mqtt.connect(MQTT_URL, mqttOptions);
 
 /* ================= DEVICES ================= */
 
