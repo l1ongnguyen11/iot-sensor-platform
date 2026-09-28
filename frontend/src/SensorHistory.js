@@ -259,8 +259,8 @@ function SensorHistory() {
               <Thermometer className="w-5 h-5 text-orange-500" />
               <span>Temperature History (°C)</span>
             </h3>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-64 w-full" style={{ width: "100%", height: "256px", minHeight: "256px" }}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={256}>
                 <LineChart data={historyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis
@@ -294,8 +294,8 @@ function SensorHistory() {
               <Droplets className="w-5 h-5 text-cyan-500" />
               <span>Humidity History (%)</span>
             </h3>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-64 w-full" style={{ width: "100%", height: "256px", minHeight: "256px" }}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={256}>
                 <LineChart data={historyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis

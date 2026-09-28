@@ -41,8 +41,8 @@ function Dashboard() {
 
   return (
     <div className="dashboard">
-      <div className="chart-wrapper">
-        <ResponsiveContainer width="100%" height={300}>
+      <div className="chart-wrapper" style={{ width: "100%", height: "300px", minHeight: "300px" }}>
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={300}>
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
