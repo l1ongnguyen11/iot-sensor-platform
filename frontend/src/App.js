@@ -225,25 +225,25 @@ function App() {
     <div className="min-h-screen weather-background">
       {/* Header */}
       <header className="backdrop-blur-md bg-white/30 border-b border-white/20 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="weather-icon-container">
-                <Cloud className="w-8 h-8 text-sky-600" />
+                <Cloud className="w-7 h-7 sm:w-8 sm:h-8 text-sky-600" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-800 font-manrope">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-800 font-manrope">
                   IoT Weather Monitor
                 </h1>
-                <p className="text-sm text-gray-600">📍 {currentCityDisplay}</p>
+                <p className="text-xs sm:text-sm text-gray-600">📍 {currentCityDisplay}</p>
               </div>
             </div>
             {/* City Selector & Controls */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 w-full sm:w-auto">
               <select
                 value={city}
                 onChange={(e) => handleCityChange(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="px-2.5 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm font-medium bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
               >
                 {cityOptions.map((opt) => (
                   <option key={opt.key} value={opt.key}>
@@ -256,21 +256,20 @@ function App() {
               {isOnline ? (
                 <div 
                   data-testid="connection-status-badge"
-                  className="flex items-center gap-2 bg-green-500/20 text-green-700 border border-green-300 px-3 py-1.5 rounded-lg"
+                  className="flex items-center gap-1.5 sm:gap-2 bg-green-500/20 text-green-700 border border-green-300 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm"
                 >
-                  <Wifi className="w-4 h-4" />
+                  <Wifi className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <span>🟢 Online</span>
                 </div>
               ) : (
                 <div 
                   data-testid="connection-status-badge"
-                  className="flex items-center gap-2 bg-red-500/20 text-red-700 border border-red-300 px-3 py-1.5 rounded-lg"
+                  className="flex items-center gap-1.5 sm:gap-2 bg-red-500/20 text-red-700 border border-red-300 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm"
                 >
-                  <WifiOff className="w-4 h-4" />
+                  <WifiOff className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <span>🔴 Offline</span>
                 </div>
               )}
-
             </div>
           </div>
         </div>
@@ -278,8 +277,8 @@ function App() {
 
       {/* Global Alert Banner */}
       {(temperature > 35 || humidity > 90) && (
-        <div className="container mx-auto px-4 py-3">
-          <div className="alert-banner flex items-center justify-center gap-4">
+        <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3">
+          <div className="alert-banner flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm">
             {temperature > 35 && (
               <div className="font-medium">⚠️ High Temperature Alert</div>
             )}
@@ -291,55 +290,55 @@ function App() {
       )}
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-12">
+      <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-12">
         <div className="max-w-6xl mx-auto">
           {/* Error Message */}
           {connectionError && (
             <div 
               data-testid="connection-error"
-              className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700"
+              className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs sm:text-sm"
             >
               {connectionError}
             </div>
           )}
 
           {/* Weather Cards Grid */}
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
             {/* Temperature Card */}
             <div 
               data-testid="temperature-card"
               className="weather-card group hover:shadow-2xl"
             >
-              <div className="p-8">
-                <div className="flex items-start justify-between mb-6">
+              <div className="p-4 sm:p-8">
+                <div className="flex items-start justify-between mb-4 sm:mb-6">
                   <div className="flex items-center gap-3">
                     <div className="weather-icon-bg bg-gradient-to-br from-orange-400 to-red-500">
-                      <Thermometer className="w-6 h-6 text-white" />
+                      <Thermometer className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-700">Nhiệt độ</h3>
-                      <p className="text-sm text-gray-500">Temperature</p>
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-700">Nhiệt độ</h3>
+                      <p className="text-xs sm:text-sm text-gray-500">Temperature</p>
                     </div>
                   </div>
                 </div>
                 
-                <div className="text-center py-6">
+                <div className="text-center py-4 sm:py-6">
                   {temperature !== null ? (
                     <div className="animate-fade-in">
-                      <div className={`text-7xl font-bold mb-2 ${getTemperatureColor(temperature)} transition-colors duration-300`}>
+                      <div className={`text-5xl sm:text-7xl font-bold mb-1 sm:mb-2 ${getTemperatureColor(temperature)} transition-colors duration-300`}>
                         {temperature.toFixed(1)}
                       </div>
-                      <div className="text-3xl text-gray-400">°C</div>
+                      <div className="text-2xl sm:text-3xl text-gray-400">°C</div>
                     </div>
                   ) : (
-                    <div className="text-5xl text-gray-300">
+                    <div className="text-4xl sm:text-5xl text-gray-300">
                       <div className="skeleton-pulse">--</div>
                     </div>
                   )}
                 </div>
 
-                <div className="mt-6 pt-6 border-t border-gray-100">
-                  <div className="flex items-center justify-between text-sm">
+                <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-100">
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
                     <span className="text-gray-500">Trạng thái:</span>
                     <span className="font-medium text-gray-700">
                       {temperature !== null ? (
@@ -361,36 +360,36 @@ function App() {
               data-testid="humidity-card"
               className="weather-card group hover:shadow-2xl"
             >
-              <div className="p-8">
-                <div className="flex items-start justify-between mb-6">
+              <div className="p-4 sm:p-8">
+                <div className="flex items-start justify-between mb-4 sm:mb-6">
                   <div className="flex items-center gap-3">
                     <div className="weather-icon-bg bg-gradient-to-br from-blue-400 to-cyan-500">
-                      <Droplets className="w-6 h-6 text-white" />
+                      <Droplets className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-700">Độ ẩm</h3>
-                      <p className="text-sm text-gray-500">Humidity</p>
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-700">Độ ẩm</h3>
+                      <p className="text-xs sm:text-sm text-gray-500">Humidity</p>
                     </div>
                   </div>
                 </div>
                 
-                <div className="text-center py-6">
+                <div className="text-center py-4 sm:py-6">
                   {humidity !== null ? (
                     <div className="animate-fade-in">
-                      <div className={`text-7xl font-bold mb-2 ${getHumidityColor(humidity)} transition-colors duration-300`}>
+                      <div className={`text-5xl sm:text-7xl font-bold mb-1 sm:mb-2 ${getHumidityColor(humidity)} transition-colors duration-300`}>
                         {humidity.toFixed(1)}
                       </div>
-                      <div className="text-3xl text-gray-400">%</div>
+                      <div className="text-2xl sm:text-3xl text-gray-400">%</div>
                     </div>
                   ) : (
-                    <div className="text-5xl text-gray-300">
+                    <div className="text-4xl sm:text-5xl text-gray-300">
                       <div className="skeleton-pulse">--</div>
                     </div>
                   )}
                 </div>
 
-                <div className="mt-6 pt-6 border-t border-gray-100">
-                  <div className="flex items-center justify-between text-sm">
+                <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-100">
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
                     <span className="text-gray-500">Trạng thái:</span>
                     <span className="font-medium text-gray-700">
                       {humidity !== null ? (
@@ -408,60 +407,60 @@ function App() {
           </div>
 
           {/* Realtime Dashboard with Chart */}
-          <div className="mt-8 mb-8">
-            <div className="backdrop-blur-md bg-gradient-to-br from-white/80 to-white/70 border border-white/80 rounded-2xl p-8 shadow-2xl">
+          <div className="mt-6 sm:mt-8 mb-6 sm:mb-8">
+            <div className="backdrop-blur-md bg-gradient-to-br from-white/80 to-white/70 border border-white/80 rounded-xl sm:rounded-2xl p-4 sm:p-8 shadow-2xl">
               <Dashboard />
             </div>
           </div>
 
           {/* Alert Monitoring System Section */}
-          <div className="mt-8 mb-8">
+          <div className="mt-6 sm:mt-8 mb-6 sm:mb-8">
             <AlertPanel />
           </div>
 
           {/* Sensor History & Analytics Section */}
-          <div className="mt-8 mb-8">
+          <div className="mt-6 sm:mt-8 mb-6 sm:mb-8">
             <SensorHistory />
           </div>
 
           {/* Device List Section */}
-          <div className="mt-6 mb-8 backdrop-blur-md bg-white/60 p-6 rounded-xl border border-gray-200 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center justify-between">
+          <div className="mt-6 mb-8 backdrop-blur-md bg-white/60 p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-800 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
               <span>Device Management</span>
               <span className="text-xs font-normal text-gray-500">Tự động cập nhật mỗi 3s</span>
             </h2>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto -mx-2 sm:mx-0 px-2 sm:px-0">
               <table className="min-w-full text-left">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="px-4 py-2 text-sm text-gray-600 font-semibold">Device</th>
-                    <th className="px-4 py-2 text-sm text-gray-600 font-semibold">City</th>
-                    <th className="px-4 py-2 text-sm text-gray-600 font-semibold">Status</th>
-                    <th className="px-4 py-2 text-sm text-gray-600 font-semibold">Last Seen</th>
+                    <th className="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 font-semibold">Device</th>
+                    <th className="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 font-semibold">City</th>
+                    <th className="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 font-semibold">Status</th>
+                    <th className="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 font-semibold">Last Seen</th>
                   </tr>
                 </thead>
                 <tbody>
                   {devices.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="px-4 py-3 text-sm text-gray-500 text-center">No devices registered</td>
+                      <td colSpan={4} className="px-4 py-3 text-xs sm:text-sm text-gray-500 text-center">No devices registered</td>
                     </tr>
                   )}
                   {devices.map((device) => {
                     const isDeviceOnline = device.online === true || device.status === 'online';
                     return (
                       <tr key={device._id || device.deviceId} className="border-t border-gray-100 hover:bg-white/50 transition-colors">
-                        <td className="px-4 py-3 text-sm font-mono text-gray-800 font-medium">
+                        <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-mono text-gray-800 font-medium whitespace-nowrap">
                           {device.name && device.name !== device.deviceId ? `${device.name} (${device.deviceId})` : device.deviceId}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{device.cityDisplay || device.cityKey || 'Unknown'}</td>
-                        <td className="px-4 py-3 text-sm font-medium">
+                        <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-gray-700 whitespace-nowrap">{device.cityDisplay || device.cityKey || 'Unknown'}</td>
+                        <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium whitespace-nowrap">
                           {isDeviceOnline ? (
-                            <span className="inline-flex items-center gap-1.5 text-green-700 font-semibold">🟢 Online</span>
+                            <span className="inline-flex items-center gap-1 text-green-700 font-semibold">🟢 Online</span>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 text-red-700 font-semibold">🔴 Offline</span>
+                            <span className="inline-flex items-center gap-1 text-red-700 font-semibold">🔴 Offline</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 font-mono">
+                        <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-gray-600 font-mono whitespace-nowrap">
                           {formatDateTime(device.lastSeen)}
                         </td>
                       </tr>
@@ -473,17 +472,17 @@ function App() {
           </div>
 
           {/* Last Update Info */}
-          <div data-testid="last-update-card" className="backdrop-blur-md bg-white/60 border-white/40 p-6 rounded-xl border border-white/40">
-            <div className="flex items-center justify-between">
+          <div data-testid="last-update-card" className="backdrop-blur-md bg-white/60 border-white/40 p-4 sm:p-6 rounded-xl border border-white/40">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Cập nhật lần cuối</p>
-                <p className="text-lg font-semibold text-gray-800">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1">Cập nhật lần cuối</p>
+                <p className="text-base sm:text-lg font-semibold text-gray-800">
                   {formatTime(lastUpdate)}
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-600 mb-1">Server</p>
-                <p className="text-sm font-mono text-gray-700 bg-gray-100 px-3 py-1 rounded-lg">
+              <div className="text-left sm:text-right w-full sm:w-auto">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1">Server</p>
+                <p className="text-xs sm:text-sm font-mono text-gray-700 bg-gray-100 px-2.5 py-1 rounded-lg break-all">
                   {SOCKET_SERVER}
                 </p>
               </div>

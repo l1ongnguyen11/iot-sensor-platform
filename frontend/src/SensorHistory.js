@@ -105,28 +105,28 @@ function SensorHistory() {
   };
 
   return (
-    <div className="backdrop-blur-md bg-white/70 border border-gray-200 rounded-2xl p-6 shadow-xl text-gray-800">
+    <div className="backdrop-blur-md bg-white/70 border border-gray-200 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl text-gray-800">
       {/* Header & Controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-200">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 pb-4 border-b border-gray-200">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-sky-500/10 rounded-xl text-sky-600">
-            <BarChart2 className="w-6 h-6" />
+          <div className="p-2 sm:p-2.5 bg-sky-500/10 rounded-xl text-sky-600">
+            <BarChart2 className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-gray-800">Sensor History & Analytics</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-gray-800">Sensor History & Analytics</h2>
             <p className="text-xs text-gray-500">Lịch sử đo nhiệt độ & độ ẩm theo thời gian</p>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 w-full md:w-auto">
           {/* Device Selector */}
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold text-gray-600">Device:</label>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <label className="text-xs font-semibold text-gray-600 min-w-[50px] sm:min-w-0">Device:</label>
             <select
               value={selectedDevice}
               onChange={(e) => setSelectedDevice(e.target.value)}
-              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              className="w-full sm:w-auto px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs sm:text-sm bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
             >
               <option value="">All Devices</option>
               {devices.map((dev) => (
@@ -138,12 +138,13 @@ function SensorHistory() {
           </div>
 
           {/* Time Range Selector */}
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-gray-500" />
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Calendar className="w-4 h-4 text-gray-500 hidden sm:block" />
+            <label className="text-xs font-semibold text-gray-600 sm:hidden min-w-[50px]">Range:</label>
             <select
               value={hours}
               onChange={(e) => setHours(Number(e.target.value))}
-              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium"
+              className="w-full sm:w-auto px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs sm:text-sm bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium"
             >
               <option value={1}>Last 1 hour</option>
               <option value={6}>Last 6 hours</option>
@@ -156,9 +157,9 @@ function SensorHistory() {
           <button
             onClick={fetchHistoryAndStats}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 w-full sm:w-auto"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </button>
         </div>
@@ -166,87 +167,87 @@ function SensorHistory() {
 
       {/* Loading & Error States */}
       {loading && (
-        <div className="py-12 text-center text-gray-500 animate-pulse font-medium">
+        <div className="py-8 text-center text-xs sm:text-sm text-gray-500 animate-pulse font-medium">
           ⏳ Loading sensor history...
         </div>
       )}
 
       {error && !loading && (
-        <div className="py-6 text-center text-red-600 bg-red-50 rounded-xl border border-red-200">
+        <div className="py-4 text-center text-xs sm:text-sm text-red-600 bg-red-50 rounded-xl border border-red-200">
           ⚠️ {error}
         </div>
       )}
 
       {!loading && !error && historyData.length === 0 && (
-        <div className="py-12 text-center text-gray-500 bg-gray-50/50 rounded-xl border border-dashed border-gray-300">
+        <div className="py-8 text-center text-xs sm:text-sm text-gray-500 bg-gray-50/50 rounded-xl border border-dashed border-gray-300">
           No sensor data available for this time range.
         </div>
       )}
 
       {/* Main Visualizations & Stats */}
       {!loading && !error && historyData.length > 0 && (
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8">
           {/* Statistics Cards */}
           {stats && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {/* Temperature Stats */}
-              <div className="p-4 rounded-xl bg-orange-50/70 border border-orange-200">
-                <div className="flex items-center gap-2 mb-2 text-orange-700 font-semibold text-sm">
+              <div className="p-3 sm:p-4 rounded-xl bg-orange-50/70 border border-orange-200">
+                <div className="flex items-center gap-2 mb-1.5 sm:mb-2 text-orange-700 font-semibold text-xs sm:text-sm">
                   <Thermometer className="w-4 h-4" />
                   <span>Temperature Stats</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-center mt-3">
+                <div className="grid grid-cols-3 gap-1 sm:gap-2 text-center mt-2 sm:mt-3">
                   <div>
-                    <span className="text-xs text-gray-500 block">Average</span>
-                    <span className="text-lg font-bold text-orange-600">{stats.temperature?.average ?? "N/A"}°C</span>
+                    <span className="text-[10px] sm:text-xs text-gray-500 block">Average</span>
+                    <span className="text-base sm:text-lg font-bold text-orange-600">{stats.temperature?.average ?? "N/A"}°C</span>
                   </div>
                   <div>
-                    <span className="text-xs text-gray-500 block">Min</span>
-                    <span className="text-lg font-bold text-blue-600">{stats.temperature?.min ?? "N/A"}°C</span>
+                    <span className="text-[10px] sm:text-xs text-gray-500 block">Min</span>
+                    <span className="text-base sm:text-lg font-bold text-blue-600">{stats.temperature?.min ?? "N/A"}°C</span>
                   </div>
                   <div>
-                    <span className="text-xs text-gray-500 block">Max</span>
-                    <span className="text-lg font-bold text-red-600">{stats.temperature?.max ?? "N/A"}°C</span>
+                    <span className="text-[10px] sm:text-xs text-gray-500 block">Max</span>
+                    <span className="text-base sm:text-lg font-bold text-red-600">{stats.temperature?.max ?? "N/A"}°C</span>
                   </div>
                 </div>
               </div>
 
               {/* Humidity Stats */}
-              <div className="p-4 rounded-xl bg-cyan-50/70 border border-cyan-200">
-                <div className="flex items-center gap-2 mb-2 text-cyan-700 font-semibold text-sm">
+              <div className="p-3 sm:p-4 rounded-xl bg-cyan-50/70 border border-cyan-200">
+                <div className="flex items-center gap-2 mb-1.5 sm:mb-2 text-cyan-700 font-semibold text-xs sm:text-sm">
                   <Droplets className="w-4 h-4" />
                   <span>Humidity Stats</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-center mt-3">
+                <div className="grid grid-cols-3 gap-1 sm:gap-2 text-center mt-2 sm:mt-3">
                   <div>
-                    <span className="text-xs text-gray-500 block">Average</span>
-                    <span className="text-lg font-bold text-cyan-600">{stats.humidity?.average ?? "N/A"}%</span>
+                    <span className="text-[10px] sm:text-xs text-gray-500 block">Average</span>
+                    <span className="text-base sm:text-lg font-bold text-cyan-600">{stats.humidity?.average ?? "N/A"}%</span>
                   </div>
                   <div>
-                    <span className="text-xs text-gray-500 block">Min</span>
-                    <span className="text-lg font-bold text-slate-600">{stats.humidity?.min ?? "N/A"}%</span>
+                    <span className="text-[10px] sm:text-xs text-gray-500 block">Min</span>
+                    <span className="text-base sm:text-lg font-bold text-slate-600">{stats.humidity?.min ?? "N/A"}%</span>
                   </div>
                   <div>
-                    <span className="text-xs text-gray-500 block">Max</span>
-                    <span className="text-lg font-bold text-blue-600">{stats.humidity?.max ?? "N/A"}%</span>
+                    <span className="text-[10px] sm:text-xs text-gray-500 block">Max</span>
+                    <span className="text-base sm:text-lg font-bold text-blue-600">{stats.humidity?.max ?? "N/A"}%</span>
                   </div>
                 </div>
               </div>
 
               {/* Readings & Range Stats */}
-              <div className="p-4 rounded-xl bg-purple-50/70 border border-purple-200 sm:col-span-2 lg:col-span-1 flex flex-col justify-between">
-                <div className="flex items-center justify-between text-purple-700 font-semibold text-sm mb-2">
+              <div className="p-3 sm:p-4 rounded-xl bg-purple-50/70 border border-purple-200 sm:col-span-2 lg:col-span-1 flex flex-col justify-between">
+                <div className="flex items-center justify-between text-purple-700 font-semibold text-xs sm:text-sm mb-2">
                   <span>Data Summary</span>
                   <span className="text-xs bg-purple-200 px-2 py-0.5 rounded-full text-purple-800">{stats.range}</span>
                 </div>
                 <div className="flex items-center justify-around text-center mt-2">
                   <div>
-                    <span className="text-xs text-gray-500 block">Total Readings</span>
-                    <span className="text-2xl font-bold text-purple-700">{stats.readings}</span>
+                    <span className="text-[10px] sm:text-xs text-gray-500 block">Total Readings</span>
+                    <span className="text-xl sm:text-2xl font-bold text-purple-700">{stats.readings}</span>
                   </div>
                   <div>
-                    <span className="text-xs text-gray-500 block">Chart Points</span>
-                    <span className="text-2xl font-bold text-purple-700">{historyData.length}</span>
+                    <span className="text-[10px] sm:text-xs text-gray-500 block">Chart Points</span>
+                    <span className="text-xl sm:text-2xl font-bold text-purple-700">{historyData.length}</span>
                   </div>
                 </div>
               </div>
@@ -254,9 +255,9 @@ function SensorHistory() {
           )}
 
           {/* Temperature Chart */}
-          <div className="bg-white/80 p-5 rounded-xl border border-gray-200">
-            <h3 className="text-md font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Thermometer className="w-5 h-5 text-orange-500" />
+          <div className="bg-white/80 p-3 sm:p-5 rounded-xl border border-gray-200">
+            <h3 className="text-sm sm:text-md font-semibold text-gray-800 mb-3 sm:mb-4 flex items-center gap-2">
+              <Thermometer className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
               <span>Temperature History (°C)</span>
             </h3>
             <div className="h-64 w-full">
@@ -289,9 +290,9 @@ function SensorHistory() {
           </div>
 
           {/* Humidity Chart */}
-          <div className="bg-white/80 p-5 rounded-xl border border-gray-200">
-            <h3 className="text-md font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Droplets className="w-5 h-5 text-cyan-500" />
+          <div className="bg-white/80 p-3 sm:p-5 rounded-xl border border-gray-200">
+            <h3 className="text-sm sm:text-md font-semibold text-gray-800 mb-3 sm:mb-4 flex items-center gap-2">
+              <Droplets className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-500" />
               <span>Humidity History (%)</span>
             </h3>
             <div className="h-64 w-full">
