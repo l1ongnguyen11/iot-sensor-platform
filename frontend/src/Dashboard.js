@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from "react";
 import io from "socket.io-client";
 import { API_URL, SOCKET_SERVER } from "./config";
+import SafeResponsiveContainer from "./SafeResponsiveContainer";
 import {
   LineChart,
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
-  ResponsiveContainer
+  Tooltip
 } from "recharts";
 import "./App.css";
 
@@ -41,8 +41,8 @@ function Dashboard() {
 
   return (
     <div className="dashboard">
-      <div className="chart-wrapper" style={{ width: "100%", height: "300px", minHeight: "300px" }}>
-        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={300}>
+      <div className="chart-wrapper">
+        <SafeResponsiveContainer height={300} minHeight={300} initialWidth={800} initialHeight={300}>
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
@@ -54,7 +54,7 @@ function Dashboard() {
             <Line type="monotone" dataKey="temperature" stroke="#f1c40f" dot={false} />
             <Line type="monotone" dataKey="humidity" stroke="#2ecc71" dot={false} />
           </LineChart>
-        </ResponsiveContainer>
+        </SafeResponsiveContainer>
       </div>
       {/* Statistics Row */}
       <div className="stats-row mt-4 flex gap-4">

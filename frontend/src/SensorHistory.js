@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { API_URL } from "./config";
+import SafeResponsiveContainer from "./SafeResponsiveContainer";
 import {
   LineChart,
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
-  ResponsiveContainer
+  Tooltip
 } from "recharts";
 import { RefreshCw, Thermometer, Droplets, Calendar, BarChart2 } from "lucide-react";
 
@@ -259,8 +259,8 @@ function SensorHistory() {
               <Thermometer className="w-5 h-5 text-orange-500" />
               <span>Temperature History (°C)</span>
             </h3>
-            <div className="h-64 w-full" style={{ width: "100%", height: "256px", minHeight: "256px" }}>
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={256}>
+            <div className="h-64 w-full">
+              <SafeResponsiveContainer height={256} minHeight={256} initialWidth={800} initialHeight={256}>
                 <LineChart data={historyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis
@@ -284,7 +284,7 @@ function SensorHistory() {
                     activeDot={{ r: 6 }}
                   />
                 </LineChart>
-              </ResponsiveContainer>
+              </SafeResponsiveContainer>
             </div>
           </div>
 
@@ -294,8 +294,8 @@ function SensorHistory() {
               <Droplets className="w-5 h-5 text-cyan-500" />
               <span>Humidity History (%)</span>
             </h3>
-            <div className="h-64 w-full" style={{ width: "100%", height: "256px", minHeight: "256px" }}>
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={256}>
+            <div className="h-64 w-full">
+              <SafeResponsiveContainer height={256} minHeight={256} initialWidth={800} initialHeight={256}>
                 <LineChart data={historyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis
@@ -319,7 +319,7 @@ function SensorHistory() {
                     activeDot={{ r: 6 }}
                   />
                 </LineChart>
-              </ResponsiveContainer>
+              </SafeResponsiveContainer>
             </div>
           </div>
         </div>
