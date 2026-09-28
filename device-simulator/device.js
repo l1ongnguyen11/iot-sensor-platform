@@ -1,22 +1,74 @@
-const mqtt = require('mqtt');
-const axios = require('axios');
+const mqtt = require("mqtt");
+const axios = require("axios");
 
-const API_KEY = '94851f3a7565d13c8f4a3700705bd32c';
+const API_KEY = process.env.OPENWEATHER_API_KEY;
 
-const client = mqtt.connect(process.env.MQTT_URL || 'mqtt://localhost:1883');
+// Backend URL
+const BACKEND_URL =
+  process.env.BACKEND_URL || "http://localhost:3000";
 
-// Danh sách thành phố Việt Nam
+const client = mqtt.connect(
+  process.env.MQTT_URL || "mqtt://localhost:1883"
+);
+
+// Danh sách thiết bị
 const cities = [
-  { name: 'Hanoi', deviceId: 'sensor_hanoi' },
-  { name: 'Da Nang', deviceId: 'sensor_danang' },
-  { name: 'Ho Chi Minh City', deviceId: 'sensor_hcm' }
+  {
+    name: "Hanoi",
+    deviceId: "sensor_hanoi"
+  },
+  {
+    name: "Da Nang",
+    deviceId: "sensor_danang"
+  },
+  {
+    name: "Ho Chi Minh City",
+    deviceId: "sensor_hcm"
+  }
 ];
 
-client.on('connect', () => {
-  console.log('✅ Device connected to MQTT broker');
+/* ================= REGISTER DEVICES ================= */
+
+async function registerDevices() {
+  for (const city of cities) {
+    try {
+      const response = await axios.post(
+        `${BACKEND_URL}/api/devices`,
+        {
+          deviceId: city.deviceId,
+          name: `Weather Sensor - ${city.name}`,
+          cityKey: city.name,
+          cityDisplay: city.name
+        }
+      );
+
+      console.log(
+        `✅ Device registered: ${city.deviceId}`
+      );
+
+    } catch (error) {
+      console.log(
+        `❌ Failed to register ${city.deviceId}:`,
+        error.response?.data?.message || error.message
+      );
+    }
+  }
+}
+
+/* ================= MQTT CONNECT ================= */
+
+client.on("connect", async () => {
+  console.log("✅ Device connected to MQTT broker");
+
+  // Register devices first
+  await registerDevices();
+
+  console.log("🚀 Starting sensor simulation...");
 
   setInterval(async () => {
-    for (let city of cities) {
+
+    for (const city of cities) {
+
       try {
 
         const res = await axios.get(
@@ -31,13 +83,22 @@ client.on('connect', () => {
           timestamp: new Date()
         };
 
-        client.publish('iot/sensor/data', JSON.stringify(data));
+        client.publish(
+          "iot/sensor/data",
+          JSON.stringify(data)
+        );
 
-        console.log('📤 Sent:', data);
+        console.log("📤 Sent:", data);
 
       } catch (err) {
-        console.log('❌ Error fetching weather:', err.message);
+
+        console.log(
+          "❌ Error fetching weather:",
+          err.message
+        );
+
       }
     }
+
   }, 5000);
 });
