@@ -19,7 +19,11 @@ app.use(express.json());
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  cors: { origin: "*" }
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  },
+  transports: ["polling", "websocket"]
 });
 
 /* ================= MongoDB ================= */
@@ -250,19 +254,19 @@ client.on("message", async (topic, message) => {
 
     /* ================= SOCKET.IO ================= */
 
-    io.emit(
-      `sensor-${mapping.key}`,
-      emitPayload
-    );
+    io.emit("sensor-data", emitPayload);
+    io.emit(`sensor-${mapping.key}`, emitPayload);
+    io.emit(`sensor-${mapping.key.toLowerCase()}`, emitPayload);
 
-    io.emit(
-      "sensor-data",
-      emitPayload
-    );
+    if (trimmedDeviceId === "sensor_hanoi") {
+      io.emit("sensor-hanoi", emitPayload);
+    } else if (trimmedDeviceId === "sensor_danang") {
+      io.emit("sensor-danang", emitPayload);
+    } else if (trimmedDeviceId === "sensor_hcm") {
+      io.emit("sensor-hcm", emitPayload);
+    }
 
-    console.log(
-      "[SOCKET] Data broadcast via Socket.io"
-    );
+    console.log("[SOCKET] Data broadcast via Socket.io");
 
     /* ================= ALERT PROCESSING ================= */
     await alertService.checkSensorAlerts(emitPayload, io);
@@ -786,47 +790,25 @@ app.get(
   "/api/sensor/city/:city",
   async (req, res) => {
     try {
-      const cityParam =
-        req.params.city;
+      const cityParam = req.params.city;
 
-      let latestData =
-        await SensorData
-          .findOne({
-            cityKey:
-              cityParam
-          })
-          .sort({
-            timestamp: -1
-          });
-
-      if (!latestData) {
-        latestData =
-          await SensorData
-            .findOne({
-              cityDisplay:
-                cityParam
-            })
-            .sort({
-              timestamp: -1
-            });
-      }
+      let latestData = await SensorData.findOne({
+        $or: [
+          { cityKey: cityParam },
+          { cityDisplay: cityParam },
+          { cityKey: new RegExp(`^${cityParam}$`, "i") },
+          { cityDisplay: new RegExp(`^${cityParam}$`, "i") },
+          { deviceId: new RegExp(cityParam, "i") }
+        ]
+      }).sort({ timestamp: -1 });
 
       if (!latestData) {
-        return res.status(404).json({
-          message:
-            "No data found"
-        });
+        return res.status(404).json({ message: "No data found" });
       }
 
-      res.json(
-        latestData
-      );
-
+      res.json(latestData);
     } catch (error) {
-      res.status(500).json({
-        message:
-          error.message
-      });
+      res.status(500).json({ message: error.message });
     }
   }
 );

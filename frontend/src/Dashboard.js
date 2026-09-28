@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import io from "socket.io-client";
-import { SOCKET_SERVER } from "./config";
+import { API_URL, SOCKET_SERVER } from "./config";
 import {
   LineChart,
   Line,
@@ -16,17 +16,28 @@ function Dashboard() {
   const [data, setData] = useState([]);
 
   useEffect(() => {
-    const socket = io(SOCKET_SERVER);
+    fetch(`${API_URL}/api/sensors/history?limit=20`)
+      .then((res) => res.json())
+      .then((result) => {
+        if (result && Array.isArray(result.data) && result.data.length > 0) {
+          setData(result.data);
+        }
+      })
+      .catch((err) => console.warn("Failed to load initial dashboard data:", err));
 
-  socket.on("sensor-data", (newData) => {
-    setData((prev) => [...prev.slice(-50), newData]);
-  });
+    const socket = io(SOCKET_SERVER, {
+      transports: ["polling", "websocket"]
+    });
 
-  return () => {
-    socket.off("sensor-data");
-    socket.disconnect();
-  };
-}, []);
+    socket.on("sensor-data", (newData) => {
+      setData((prev) => [...prev.slice(-50), newData]);
+    });
+
+    return () => {
+      socket.off("sensor-data");
+      socket.disconnect();
+    };
+  }, []);
 
   return (
     <div className="dashboard">

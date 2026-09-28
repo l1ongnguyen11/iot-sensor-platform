@@ -27,16 +27,66 @@ function App() {
   const socketRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
 
+  const isDataForCity = (data, targetCity) => {
+    if (!data) return false;
+    const dId = (data.deviceId || "").toLowerCase();
+    const cKey = (data.cityKey || "").toLowerCase();
+    const cDisp = (data.cityDisplay || "").toLowerCase();
+
+    if (targetCity === "hanoi") {
+      return dId === "sensor_hanoi" || cKey.includes("hanoi") || cDisp.includes("hanoi");
+    }
+    if (targetCity === "danang") {
+      return dId === "sensor_danang" || cKey.includes("da nang") || cKey.includes("danang") || cDisp.includes("da nang");
+    }
+    if (targetCity === "hcm") {
+      return dId === "sensor_hcm" || cKey.includes("ho chi minh") || cKey.includes("hcm") || cDisp.includes("hcm");
+    }
+    return false;
+  };
+
+  const fetchInitialCityData = useCallback((cityName) => {
+    fetch(`${API_URL}/api/sensor/city/${cityName}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("No data");
+        return res.json();
+      })
+      .then((data) => {
+        if (data && data.temperature !== undefined) {
+          setTemperature(data.temperature);
+          setHumidity(data.humidity);
+          const timestamp = data.timestamp ? new Date(data.timestamp) : new Date();
+          setSensorData({ ...data, timestamp });
+          setLastUpdate(timestamp);
+          setIsOnline(true);
+        }
+      })
+      .catch((err) => {
+        console.warn(`Initial data fetch skipped for ${cityName}:`, err.message);
+      });
+  }, []);
+
+  useEffect(() => {
+    fetchInitialCityData(city);
+  }, [city, fetchInitialCityData]);
+
   const connectSocket = useCallback(() => {
     try {
-      socketRef.current = io(SOCKET_SERVER);
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+
+      socketRef.current = io(SOCKET_SERVER, {
+        transports: ["polling", "websocket"]
+      });
 
       socketRef.current.on("connect", () => {
-  console.log("Socket.io connected");
-  setConnectionError(null);
-});
+        console.log("Socket.io connected");
+        setConnectionError(null);
+      });
 
-      socketRef.current.on(`sensor-${city}`, (data) => {
+      const handleSensorPayload = (data) => {
+        if (!data) return;
         if (data.temperature !== undefined) {
           setTemperature(data.temperature);
         }
@@ -46,21 +96,30 @@ function App() {
 
         const incomingData = {
           ...data,
-          timestamp: new Date(),
+          timestamp: data.timestamp ? new Date(data.timestamp) : new Date(),
         };
 
         setSensorData(incomingData);
         setLastUpdate(incomingData.timestamp);
+        setIsOnline(true);
+      };
+
+      socketRef.current.on(`sensor-${city}`, handleSensorPayload);
+
+      socketRef.current.on("sensor-data", (data) => {
+        if (isDataForCity(data, city)) {
+          handleSensorPayload(data);
+        }
       });
 
       socketRef.current.on("disconnect", () => {
-  console.log("Socket.io disconnected");
+        console.log("Socket.io disconnected");
 
-  reconnectTimeoutRef.current = setTimeout(() => {
-    console.log("Attempting to reconnect...");
-    connectSocket();
-  }, 5000);
-});
+        reconnectTimeoutRef.current = setTimeout(() => {
+          console.log("Attempting to reconnect...");
+          connectSocket();
+        }, 5000);
+      });
 
       socketRef.current.on("connect_error", (error) => {
         console.error("Socket.io error:", error);

@@ -84,7 +84,9 @@ function AlertPanel() {
 
   // Socket.io Realtime Listener
   useEffect(() => {
-    const socket = io(SOCKET_SERVER);
+    const socket = io(SOCKET_SERVER, {
+      transports: ["polling", "websocket"]
+    });
 
     socket.on("alert:new", (newAlert) => {
       setAlerts((prev) => [newAlert, ...prev.filter((a) => a.id !== newAlert.id)]);
