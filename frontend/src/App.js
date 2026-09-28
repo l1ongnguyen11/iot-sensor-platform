@@ -3,6 +3,7 @@ import "./App.css";
 import io from "socket.io-client";
 import { Thermometer, Droplets, Wifi, WifiOff, Cloud } from "lucide-react";
 import Dashboard from "./Dashboard";
+import SensorHistory from "./SensorHistory";
 
 function App() {
   const [temperature, setTemperature] = useState(null);
@@ -86,13 +87,22 @@ const API_URL =
     };
   }, [connectSocket]);
 
-  // Fetch registered devices from backend
-  useEffect(() => {
+  const fetchDevices = useCallback(() => {
     fetch(`${API_URL}/api/devices`)
       .then(res => res.json())
-      .then(data => setDevices(data))
+      .then(data => {
+        if (Array.isArray(data)) {
+          setDevices(data);
+        }
+      })
       .catch(err => console.warn("Failed to load devices:", err));
-  }, [API_URL ]);
+  }, [API_URL]);
+
+  useEffect(() => {
+    fetchDevices();
+    const interval = setInterval(fetchDevices, 3000);
+    return () => clearInterval(interval);
+  }, [fetchDevices]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -122,6 +132,20 @@ const API_URL =
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit'
+    });
+  };
+
+  const formatDateTime = (dateVal) => {
+    if (!dateVal) return 'Chưa ghi nhận';
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return 'N/A';
+    return d.toLocaleString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
     });
   };
 
@@ -326,43 +350,57 @@ const API_URL =
             </div>
           </div>
 
-          {/* Dashboard with Chart */}
+          {/* Realtime Dashboard with Chart */}
           <div className="mt-8 mb-8">
             <div className="backdrop-blur-md bg-gradient-to-br from-white/80 to-white/70 border border-white/80 rounded-2xl p-8 shadow-2xl">
               <Dashboard />
             </div>
           </div>
 
+          {/* Sensor History & Analytics Section */}
+          <div className="mt-8 mb-8">
+            <SensorHistory />
+          </div>
+
           {/* Device List Section */}
-          <div className="mt-6 mb-8 backdrop-blur-md bg-white/60 p-6 rounded-xl border border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Device List</h2>
+          <div className="mt-6 mb-8 backdrop-blur-md bg-white/60 p-6 rounded-xl border border-gray-200 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center justify-between">
+              <span>Device Management</span>
+              <span className="text-xs font-normal text-gray-500">Tự động cập nhật mỗi 3s</span>
+            </h2>
             <div className="overflow-x-auto">
               <table className="min-w-full text-left">
                 <thead>
-                  <tr>
-                    <th className="px-4 py-2 text-sm text-gray-600">Device</th>
-                    <th className="px-4 py-2 text-sm text-gray-600">City</th>
-                    <th className="px-4 py-2 text-sm text-gray-600">Status</th>
+                  <tr className="border-b border-gray-200">
+                    <th className="px-4 py-2 text-sm text-gray-600 font-semibold">Device</th>
+                    <th className="px-4 py-2 text-sm text-gray-600 font-semibold">City</th>
+                    <th className="px-4 py-2 text-sm text-gray-600 font-semibold">Status</th>
+                    <th className="px-4 py-2 text-sm text-gray-600 font-semibold">Last Seen</th>
                   </tr>
                 </thead>
                 <tbody>
                   {devices.length === 0 && (
                     <tr>
-                      <td colSpan={3} className="px-4 py-3 text-sm text-gray-500">No devices registered</td>
+                      <td colSpan={4} className="px-4 py-3 text-sm text-gray-500 text-center">No devices registered</td>
                     </tr>
                   )}
                   {devices.map((device) => {
-                    const isOffline = device.online === false;
+                    const isDeviceOnline = device.online === true || device.status === 'online';
                     return (
-                      <tr key={device._id || device.deviceId} className="border-t">
-                        <td className="px-4 py-3 text-sm text-gray-800">{device.deviceId}</td>
+                      <tr key={device._id || device.deviceId} className="border-t border-gray-100 hover:bg-white/50 transition-colors">
+                        <td className="px-4 py-3 text-sm font-mono text-gray-800 font-medium">
+                          {device.name && device.name !== device.deviceId ? `${device.name} (${device.deviceId})` : device.deviceId}
+                        </td>
                         <td className="px-4 py-3 text-sm text-gray-700">{device.cityDisplay || device.cityKey || 'Unknown'}</td>
-                        <td className="px-4 py-3 text-sm">
-                          {isOffline ? (
-                            <span className="text-red-600">🔴 Offline</span>
+                        <td className="px-4 py-3 text-sm font-medium">
+                          {isDeviceOnline ? (
+                            <span className="inline-flex items-center gap-1.5 text-green-700 font-semibold">🟢 Online</span>
                           ) : (
-                            <span className="text-green-600">🟢 Online</span>
+                            <span className="inline-flex items-center gap-1.5 text-red-700 font-semibold">🔴 Offline</span>
                           )}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600 font-mono">
+                          {formatDateTime(device.lastSeen)}
                         </td>
                       </tr>
                     );

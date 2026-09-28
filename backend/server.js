@@ -1,4 +1,5 @@
 require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 const mqtt = require("mqtt");
@@ -10,6 +11,7 @@ const SensorData = require("./models/SensorData");
 const Device = require("./models/Device");
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
@@ -21,10 +23,13 @@ const io = new Server(server, {
 
 /* ================= MongoDB ================= */
 
-mongoose.connect(process.env.MONGO_URI, {
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000,
-});
+mongoose.connect(
+  process.env.MONGO_URI || "mongodb://127.0.0.1:27017/iot_db",
+  {
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000
+  }
+);
 
 mongoose.connection.once("open", () => {
   console.log("✅ MongoDB connected");
@@ -34,49 +39,132 @@ mongoose.connection.on("error", (err) => {
   console.log("⚠️ MongoDB error:", err.message);
 });
 
+/* ================= OFFLINE DETECTION ================= */
+
+const OFFLINE_TIMEOUT = 15000;
+
+async function checkOfflineDevices() {
+  try {
+    const cutoff = new Date(Date.now() - OFFLINE_TIMEOUT);
+
+    const expiredDevices = await Device.find({
+      status: "online",
+      $or: [
+        { lastSeen: { $lt: cutoff } },
+        { lastSeen: null }
+      ]
+    });
+
+    for (const device of expiredDevices) {
+      device.status = "offline";
+      await device.save();
+
+      console.log(`🔴 Device offline: ${device.deviceId}`);
+    }
+  } catch (err) {
+    console.error("❌ Offline detection error:", err.message);
+  }
+}
+
+setInterval(checkOfflineDevices, 5000);
+
 /* ================= MQTT ================= */
 
 const client = mqtt.connect(
-  process.env.MQTT_URL || "mqtt://localhost:1883"
+  process.env.MQTT_URL ||
+  process.env.MQTT_BROKER ||
+  "mqtt://localhost:1883"
 );
 
 client.on("connect", () => {
   console.log("✅ Connected to MQTT broker");
+
   client.subscribe("iot/sensor/data");
 });
 
 client.on("message", async (topic, message) => {
   try {
-    const data = JSON.parse(message.toString());
+    let data;
+
+    /* ================= PARSE MQTT DATA ================= */
+
+    try {
+      data = JSON.parse(message.toString());
+    } catch (parseErr) {
+      console.error("❌ MQTT parse error:", parseErr.message);
+      return;
+    }
+
+    /* ================= VALIDATE SENSOR DATA ================= */
+
+    const {
+      deviceId,
+      temperature,
+      humidity
+    } = data || {};
+
+    if (
+      !deviceId ||
+      typeof deviceId !== "string" ||
+      !deviceId.trim() ||
+      typeof temperature !== "number" ||
+      isNaN(temperature) ||
+      typeof humidity !== "number" ||
+      isNaN(humidity)
+    ) {
+      console.warn(
+        "❌ Sensor data validation failed:",
+        data
+      );
+
+      return;
+    }
+
+    const trimmedDeviceId = deviceId.trim();
+
+    /* ================= FIND DEVICE ================= */
+
+    let device = null;
+
+    try {
+      device = await Device.findOne({
+        deviceId: trimmedDeviceId
+      });
+    } catch (dbErr) {
+      console.warn(
+        "⚠️ Error querying device:",
+        dbErr.message
+      );
+    }
 
     /* ================= UPDATE DEVICE STATUS ================= */
 
-    if (data.deviceId) {
-      await Device.findOneAndUpdate(
-        { deviceId: data.deviceId },
-        {
-          $set: {
-            status: "online",
-            lastSeen: new Date()
-          }
-        },
-        { new: true }
+    if (!device) {
+      console.warn(
+        `⚠️ Unknown device: ${trimmedDeviceId}`
       );
+    } else {
+      try {
+        device.status = "online";
+        device.lastSeen = new Date();
 
-      console.log(`🟢 Device online: ${data.deviceId}`);
-    }
+        await device.save();
 
-    /* ================= CHECK CITY ================= */
-
-    if (!data.city) {
-      console.log("⚠️ Data missing city:", data);
-      return;
+        console.log(
+          `✅ Device online: ${device.deviceId}`
+        );
+      } catch (devUpdateErr) {
+        console.warn(
+          "⚠️ Device status update error:",
+          devUpdateErr.message
+        );
+      }
     }
 
     /* ================= CITY MAP ================= */
 
     const cityMap = {
-      "Hanoi": {
+      Hanoi: {
         key: "Hanoi",
         display: "Ha Noi"
       },
@@ -92,32 +180,39 @@ client.on("message", async (topic, message) => {
       }
     };
 
+    const rawCity =
+      data.city ||
+      (device ? device.name : null) ||
+      "Hanoi";
+
     const mapping =
-      cityMap[data.city] || {
-        key: data.city,
-        display: data.city
+      cityMap[rawCity] || {
+        key: rawCity,
+        display: rawCity
       };
 
     /* ================= REALTIME PAYLOAD ================= */
 
     const emitPayload = {
-      deviceId: data.deviceId,
+      deviceId: trimmedDeviceId,
       cityKey: mapping.key,
       cityDisplay: mapping.display,
-      temperature: data.temperature,
-      humidity: data.humidity,
-      timestamp: data.timestamp || new Date()
+      temperature,
+      humidity,
+      timestamp: data.timestamp
+        ? new Date(data.timestamp)
+        : new Date()
     };
 
-    /* ================= SAVE TO MONGODB ================= */
+    /* ================= SAVE SENSOR DATA ================= */
 
     try {
       const sensorData = new SensorData({
-        deviceId: data.deviceId,
-        cityKey: mapping.key,
-        cityDisplay: mapping.display,
-        temperature: data.temperature,
-        humidity: data.humidity,
+        deviceId: emitPayload.deviceId,
+        cityKey: emitPayload.cityKey,
+        cityDisplay: emitPayload.cityDisplay,
+        temperature: emitPayload.temperature,
+        humidity: emitPayload.humidity,
         timestamp: emitPayload.timestamp
       });
 
@@ -126,14 +221,19 @@ client.on("message", async (topic, message) => {
 
         new Promise((_, reject) =>
           setTimeout(
-            () => reject(new Error("Save timeout")),
+            () =>
+              reject(
+                new Error("Save timeout")
+              ),
             5000
           )
         )
       ]);
 
-      console.log("📦 Data saved to DB:", emitPayload);
-
+      console.log(
+        "📦 Data saved to DB:",
+        emitPayload
+      );
     } catch (dbError) {
       console.warn(
         "⚠️ DB save skipped (MongoDB offline):",
@@ -153,11 +253,13 @@ client.on("message", async (topic, message) => {
       emitPayload
     );
 
-    console.log("📡 Data broadcast via Socket.io");
+    console.log(
+      "📡 Data broadcast via Socket.io"
+    );
 
   } catch (error) {
     console.error(
-      "❌ MQTT parse error:",
+      "❌ MQTT message handling error:",
       error.message
     );
   }
@@ -173,6 +275,8 @@ app.get("/", (req, res) => {
     endpoints: {
       root: "/",
       sensors: "/api/sensors",
+      sensors_history: "/api/sensors/history",
+      sensors_stats: "/api/sensors/stats",
       devices: "/api/devices",
       city_data: "/api/sensor/city/:city",
       socket: "WebSocket connection available"
@@ -180,22 +284,431 @@ app.get("/", (req, res) => {
   });
 });
 
-/* ================= REST API ================= */
+/* ================= SENSOR HISTORY ================= */
 
-/* Get latest sensor data by city */
+app.get(
+  "/api/sensors/history",
+  async (req, res) => {
+    try {
+      const {
+        deviceId,
+        city,
+        hours,
+        limit
+      } = req.query;
+
+      /* ================= HOURS ================= */
+
+      let hoursNum = 24;
+
+      if (
+        hours !== undefined &&
+        hours !== ""
+      ) {
+        hoursNum = Number(hours);
+
+        if (
+          isNaN(hoursNum) ||
+          hoursNum <= 0 ||
+          hoursNum > 720
+        ) {
+          return res.status(400).json({
+            message:
+              "hours must be a positive number up to 720"
+          });
+        }
+      }
+
+      /* ================= LIMIT ================= */
+
+      let limitNum = 200;
+
+      if (
+        limit !== undefined &&
+        limit !== ""
+      ) {
+        limitNum = Number(limit);
+
+        if (
+          !Number.isInteger(limitNum) ||
+          limitNum <= 0 ||
+          limitNum > 1000
+        ) {
+          return res.status(400).json({
+            message:
+              "limit must be a positive integer up to 1000"
+          });
+        }
+      }
+
+      /* ================= QUERY ================= */
+
+      const since = new Date(
+        Date.now() -
+        hoursNum * 60 * 60 * 1000
+      );
+
+      const query = {
+        timestamp: {
+          $gte: since
+        }
+      };
+
+      if (
+        deviceId &&
+        typeof deviceId === "string" &&
+        deviceId.trim()
+      ) {
+        query.deviceId =
+          deviceId.trim();
+      }
+
+      if (
+        city &&
+        typeof city === "string" &&
+        city.trim()
+      ) {
+        const trimmedCity =
+          city.trim();
+
+        query.$or = [
+          {
+            cityKey: new RegExp(
+              `^${trimmedCity}$`,
+              "i"
+            )
+          },
+          {
+            cityDisplay: new RegExp(
+              `^${trimmedCity}$`,
+              "i"
+            )
+          }
+        ];
+      }
+
+      /* ================= GET DATA ================= */
+
+      const rawData =
+        await SensorData.find(query)
+          .sort({
+            timestamp: -1
+          })
+          .limit(limitNum)
+          .lean();
+
+      /* ================= CHRONOLOGICAL ORDER ================= */
+
+      const chronologicalData =
+        rawData
+          .reverse()
+          .map((item) => ({
+            temperature:
+              item.temperature,
+
+            humidity:
+              item.humidity,
+
+            timestamp:
+              item.timestamp
+          }));
+
+      /* ================= RESPONSE ================= */
+
+      res.json({
+        deviceId:
+          device
+            ? deviceId.trim()
+            : deviceId
+              ? deviceId.trim()
+              : null,
+
+        city:
+          city
+            ? city.trim()
+            : null,
+
+        range:
+          `${hoursNum}h`,
+
+        count:
+          chronologicalData.length,
+
+        data:
+          chronologicalData
+      });
+
+    } catch (error) {
+      console.error(
+        "❌ Error fetching sensor history:",
+        error.message
+      );
+
+      res.status(500).json({
+        message:
+          "Internal server error"
+      });
+    }
+  }
+);
+
+/* ================= SENSOR STATISTICS ================= */
+
+app.get(
+  "/api/sensors/stats",
+  async (req, res) => {
+    try {
+      const {
+        deviceId,
+        city,
+        hours
+      } = req.query;
+
+      /* ================= HOURS ================= */
+
+      let hoursNum = 24;
+
+      if (
+        hours !== undefined &&
+        hours !== ""
+      ) {
+        hoursNum = Number(hours);
+
+        if (
+          isNaN(hoursNum) ||
+          hoursNum <= 0 ||
+          hoursNum > 720
+        ) {
+          return res.status(400).json({
+            message:
+              "hours must be a positive number up to 720"
+          });
+        }
+      }
+
+      /* ================= MATCH ================= */
+
+      const since = new Date(
+        Date.now() -
+        hoursNum * 60 * 60 * 1000
+      );
+
+      const matchStage = {
+        timestamp: {
+          $gte: since
+        }
+      };
+
+      if (
+        deviceId &&
+        typeof deviceId === "string" &&
+        deviceId.trim()
+      ) {
+        matchStage.deviceId =
+          deviceId.trim();
+      }
+
+      if (
+        city &&
+        typeof city === "string" &&
+        city.trim()
+      ) {
+        const trimmedCity =
+          city.trim();
+
+        matchStage.$or = [
+          {
+            cityKey: new RegExp(
+              `^${trimmedCity}$`,
+              "i"
+            )
+          },
+          {
+            cityDisplay: new RegExp(
+              `^${trimmedCity}$`,
+              "i"
+            )
+          }
+        ];
+      }
+
+      /* ================= AGGREGATION ================= */
+
+      const statsResult =
+        await SensorData.aggregate([
+          {
+            $match:
+              matchStage
+          },
+
+          {
+            $group: {
+              _id: null,
+
+              readings: {
+                $sum: 1
+              },
+
+              avgTemp: {
+                $avg: "$temperature"
+              },
+
+              minTemp: {
+                $min: "$temperature"
+              },
+
+              maxTemp: {
+                $max: "$temperature"
+              },
+
+              avgHum: {
+                $avg: "$humidity"
+              },
+
+              minHum: {
+                $min: "$humidity"
+              },
+
+              maxHum: {
+                $max: "$humidity"
+              }
+            }
+          }
+        ]);
+
+      /* ================= NO DATA ================= */
+
+      if (
+        !statsResult ||
+        statsResult.length === 0
+      ) {
+        return res.json({
+          deviceId:
+            deviceId
+              ? deviceId.trim()
+              : null,
+
+          city:
+            city
+              ? city.trim()
+              : null,
+
+          range:
+            `${hoursNum}h`,
+
+          readings: 0,
+
+          temperature: {
+            average: 0,
+            min: 0,
+            max: 0
+          },
+
+          humidity: {
+            average: 0,
+            min: 0,
+            max: 0
+          }
+        });
+      }
+
+      /* ================= FORMAT STATS ================= */
+
+      const stats =
+        statsResult[0];
+
+      res.json({
+        deviceId:
+          deviceId
+            ? deviceId.trim()
+            : null,
+
+        city:
+          city
+            ? city.trim()
+            : null,
+
+        range:
+          `${hoursNum}h`,
+
+        readings:
+          stats.readings,
+
+        temperature: {
+          average:
+            Number(
+              (
+                stats.avgTemp || 0
+              ).toFixed(1)
+            ),
+
+          min:
+            Number(
+              (
+                stats.minTemp || 0
+              ).toFixed(1)
+            ),
+
+          max:
+            Number(
+              (
+                stats.maxTemp || 0
+              ).toFixed(1)
+            )
+        },
+
+        humidity: {
+          average:
+            Number(
+              (
+                stats.avgHum || 0
+              ).toFixed(1)
+            ),
+
+          min:
+            Number(
+              (
+                stats.minHum || 0
+              ).toFixed(1)
+            ),
+
+          max:
+            Number(
+              (
+                stats.maxHum || 0
+              ).toFixed(1)
+            )
+        }
+      });
+
+    } catch (error) {
+      console.error(
+        "❌ Error fetching sensor statistics:",
+        error.message
+      );
+
+      res.status(500).json({
+        message:
+          "Internal server error"
+      });
+    }
+  }
+);
+
+/* ================= LATEST SENSOR BY CITY ================= */
 
 app.get(
   "/api/sensor/city/:city",
   async (req, res) => {
-
     try {
-
-      const cityParam = req.params.city;
+      const cityParam =
+        req.params.city;
 
       let latestData =
         await SensorData
           .findOne({
-            cityKey: cityParam
+            cityKey:
+              cityParam
           })
           .sort({
             timestamp: -1
@@ -205,7 +718,8 @@ app.get(
         latestData =
           await SensorData
             .findOne({
-              cityDisplay: cityParam
+              cityDisplay:
+                cityParam
             })
             .sort({
               timestamp: -1
@@ -214,30 +728,30 @@ app.get(
 
       if (!latestData) {
         return res.status(404).json({
-          message: "No data found"
+          message:
+            "No data found"
         });
       }
 
-      res.json(latestData);
+      res.json(
+        latestData
+      );
 
     } catch (error) {
-
       res.status(500).json({
-        message: error.message
+        message:
+          error.message
       });
-
     }
   }
 );
 
-/* Get all sensor data */
+/* ================= ALL SENSOR DATA ================= */
 
 app.get(
   "/api/sensors",
   async (req, res) => {
-
     try {
-
       const data =
         await SensorData
           .find()
@@ -248,11 +762,10 @@ app.get(
       res.json(data);
 
     } catch (error) {
-
       res.status(500).json({
-        message: error.message
+        message:
+          error.message
       });
-
     }
   }
 );
@@ -262,9 +775,7 @@ app.get(
 app.post(
   "/api/devices",
   async (req, res) => {
-
     try {
-
       const {
         deviceId,
         name,
@@ -272,37 +783,133 @@ app.post(
         cityDisplay
       } = req.body;
 
-      if (!deviceId) {
+      if (
+        !deviceId ||
+        typeof deviceId !== "string" ||
+        !deviceId.trim()
+      ) {
         return res.status(400).json({
-          message: "deviceId required"
+          message:
+            "deviceId required"
         });
       }
+
+      const trimmedId =
+        deviceId.trim();
 
       let device =
         await Device.findOne({
-          deviceId
+          deviceId:
+            trimmedId
         });
+
+      /* ================= CREATE DEVICE ================= */
 
       if (!device) {
+        device =
+          new Device({
+            deviceId:
+              trimmedId,
 
-        device = new Device({
-          deviceId,
-          name,
-          cityKey,
-          cityDisplay
-        });
+            name:
+              name
+                ? String(name).trim()
+                : trimmedId,
+
+            cityKey:
+              cityKey
+                ? String(cityKey).trim()
+                : "",
+
+            cityDisplay:
+              cityDisplay
+                ? String(cityDisplay).trim()
+                : "",
+
+            status:
+              "offline",
+
+            lastSeen:
+              null,
+
+            registeredAt:
+              new Date()
+          });
 
         await device.save();
+
+      } else {
+
+        /* ================= UPDATE EXISTING DEVICE ================= */
+
+        let updated =
+          false;
+
+        if (
+          name &&
+          device.name !==
+          String(name).trim()
+        ) {
+          device.name =
+            String(name).trim();
+
+          updated = true;
+        }
+
+        if (
+          cityKey &&
+          device.cityKey !==
+          String(cityKey).trim()
+        ) {
+          device.cityKey =
+            String(cityKey).trim();
+
+          updated = true;
+        }
+
+        if (
+          cityDisplay &&
+          device.cityDisplay !==
+          String(cityDisplay).trim()
+        ) {
+          device.cityDisplay =
+            String(cityDisplay).trim();
+
+          updated = true;
+        }
+
+        if (updated) {
+          await device.save();
+        }
       }
 
-      res.json(device);
+      /* ================= RESPONSE ================= */
 
-    } catch (err) {
+      const devObj =
+        device.toObject();
 
-      res.status(500).json({
-        message: err.message
+      const isOnline =
+        devObj.status === "online" &&
+        devObj.lastSeen &&
+        (
+          Date.now() -
+          new Date(
+            devObj.lastSeen
+          ).getTime()
+        ) <
+        OFFLINE_TIMEOUT;
+
+      res.json({
+        ...devObj,
+        online:
+          Boolean(isOnline)
       });
 
+    } catch (err) {
+      res.status(500).json({
+        message:
+          err.message
+      });
     }
   }
 );
@@ -312,9 +919,7 @@ app.post(
 app.get(
   "/api/devices",
   async (req, res) => {
-
     try {
-
       const list =
         await Device
           .find()
@@ -322,57 +927,43 @@ app.get(
             registeredAt: -1
           });
 
+      const now =
+        Date.now();
+
       const enhanced =
-        await Promise.all(
+        list.map((device) => {
+          const devObj =
+            device.toObject();
 
-          list.map(async (device) => {
+          const isOnline =
+            devObj.status ===
+            "online" &&
+            devObj.lastSeen &&
+            (
+              now -
+              new Date(
+                devObj.lastSeen
+              ).getTime()
+            ) <
+            OFFLINE_TIMEOUT;
 
-            const latestSensor =
-              await SensorData
-                .findOne({
-                  deviceId: device.deviceId
-                })
-                .sort({
-                  timestamp: -1
-                });
+          return {
+            ...devObj,
 
-            const sensorLastSeen =
-              latestSensor?.timestamp || null;
+            online:
+              Boolean(isOnline)
+          };
+        });
 
-            /*
-             * Device is considered online
-             * if it sent data within 15 seconds.
-             */
-
-            const online =
-              sensorLastSeen
-                ? (
-                    new Date() -
-                    new Date(sensorLastSeen)
-                  ) < 15000
-                : false;
-
-            return {
-              ...device.toObject(),
-
-              lastSeen:
-                device.lastSeen ||
-                sensorLastSeen,
-
-              online
-            };
-
-          })
-        );
-
-      res.json(enhanced);
+      res.json(
+        enhanced
+      );
 
     } catch (err) {
-
       res.status(500).json({
-        message: err.message
+        message:
+          err.message
       });
-
     }
   }
 );
@@ -382,12 +973,10 @@ app.get(
 io.on(
   "connection",
   (socket) => {
-
     console.log(
       "⚡ Client connected:",
       socket.id
     );
-
   }
 );
 
@@ -400,10 +989,8 @@ server.listen(
   PORT,
   "0.0.0.0",
   () => {
-
     console.log(
       `🚀 Server running on port ${PORT}`
     );
-
   }
 );

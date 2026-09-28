@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   mongodb:
     image: mongo:latest
@@ -51,6 +49,7 @@ services:
       - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
     depends_on:
       - mosquitto
+      - backend
     networks:
       - iot_network
     restart: always
