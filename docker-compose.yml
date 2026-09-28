@@ -50,10 +50,10 @@ services:
       context: ./device-simulator
     container_name: iot_device_simulator
     environment:
-      - MQTT_URL=${MQTT_URL:-mqtt://mosquitto:1883}
+      - MQTT_URL=mqtts://00c05dcefbf6496b91c00fb70c77f0cc.s1.eu.hivemq.cloud:8883
       - MQTT_USERNAME=${MQTT_USERNAME}
       - MQTT_PASSWORD=${MQTT_PASSWORD}
-      - BACKEND_URL=http://backend:3000
+      - BACKEND_URL=https://iot-sensor-backend.onrender.com
       - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
     depends_on:
       - mosquitto
